@@ -266,6 +266,30 @@ function NumberSurveyQuestion({
           style={{ flex: 1, border: "none", outline: "none", fontSize: 22, fontWeight: 700, color: "#1A1A18", background: "transparent", minWidth: 0 }}
         />
         <span style={{ fontSize: 15, fontWeight: 600, color: "#6B6A65" }}>{suffix}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, marginLeft: 4 }}>
+          <button
+            type="button"
+            onClick={() => {
+              const base = val === "" ? 0 : num;
+              const next = Math.min(max, base + 5);
+              setVal(String(next));
+            }}
+            style={{ width: 36, height: 28, border: "1px solid #E5E2D9", borderRadius: 6, background: "#fff", fontSize: 14, color: GREEN, cursor: "pointer" }}
+          >
+            +5
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const base = val === "" ? 0 : num;
+              const next = Math.max(min, base - 5);
+              setVal(String(next));
+            }}
+            style={{ width: 36, height: 28, border: "1px solid #E5E2D9", borderRadius: 6, background: "#fff", fontSize: 14, color: "#B23636", cursor: "pointer" }}
+          >
+            -5
+          </button>
+        </div>
       </div>
       <button
         onClick={() => valid && onAnswer(num)}
