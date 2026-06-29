@@ -3,9 +3,9 @@ import { useState, useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeFoot, type FootAnalysis } from "@/lib/foot-analysis.functions";
 import { PRODUCTS, type Product } from "@/lib/products-data";
-import guideFront from "@/assets/guide-front.jpg";
-import guideSide from "@/assets/guide-side.jpg";
-import guideHeel from "@/assets/guide-heel.jpg";
+import guideFront from "@/assets/guide-front.png";
+import guideSide from "@/assets/guide-side.png";
+import guideHeel from "@/assets/guide-heel.png";
 import guideMistakes from "@/assets/guide-mistakes.jpg";
 
 export const Route = createFileRoute("/")({
@@ -150,9 +150,11 @@ function PhotoUploadStep({
       </div>
 
       {/* 예시 사진 */}
-      <div style={{ background: GREEN_LIGHT, borderRadius: 12, padding: 12, marginBottom: 14, display: "flex", gap: 12, alignItems: "center" }}>
-        <img src={exampleSrc} alt="예시" style={{ width: 84, height: 110, objectFit: "cover", borderRadius: 8, background: "#fff", flexShrink: 0 }} />
-        <div>
+      <div style={{ background: GREEN_LIGHT, borderRadius: 12, padding: 12, marginBottom: 14, display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <div style={{ width: 96, flexShrink: 0, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <img src={exampleSrc} alt="예시" style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: GREEN, margin: "0 0 4px 0", letterSpacing: 0.3 }}>📸 이렇게 찍어주세요</p>
           <p style={{ fontSize: 12, color: "#1A4A3D", margin: 0, lineHeight: 1.5 }}>{exampleCaption}</p>
         </div>
