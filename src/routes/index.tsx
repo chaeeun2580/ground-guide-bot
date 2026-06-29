@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { analyzeFoot, type FootAnalysis } from "@/lib/foot-analysis.functions";
+import { PRODUCTS, type Product } from "@/lib/products-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "발 사진으로 축구화 찾기" },
-      { name: "description", content: "사진 3장과 간단한 질문 5개로 딱 맞는 축구화를 추천해드려요." },
-      { property: "og:title", content: "발 사진으로 축구화 찾기" },
-      { property: "og:description", content: "사진 3장과 간단한 질문 5개로 딱 맞는 축구화를 추천해드려요." },
+      { name: "description", content: "발 사진 + 쉬운 질문으로 AI가 발 모양을 분석하고 딱 맞는 축구화를 추천해드려요." },
     ],
   }),
   component: App,
@@ -16,116 +17,93 @@ export const Route = createFileRoute("/")({
 const GREEN = "#0F6E56";
 const GREEN_LIGHT = "#E1F5EE";
 
-type Product = {
-  id: string;
-  brand: string;
-  silo: string;
-  modelName: string;
-  groundTypes: string[];
-  fitWidth: "넓음" | "보통" | "좁음";
-  styleTag: string;
-  weightClass: string;
-  priceKrw: number;
-  upperMaterial: string;
-  gender: string;
-};
-
-const PRODUCTS: Product[] = [
-  { id: "94634333", brand: "나이키", silo: "팬텀", modelName: "나이키 팬텀 6 로우 엘리트 AG 프로 HQ2335-400", groundTypes: ["AG"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 118250, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "102881093", brand: "나이키", silo: "머큐리얼", modelName: "나이키 줌 머큐리얼 베이퍼 16 엘리트 AG-PRO FQ8693-446", groundTypes: ["AG"], fitWidth: "좁음", styleTag: "스피드", weightClass: "정보없음", priceKrw: 236490, upperMaterial: "니트", gender: "남녀공용" },
-  { id: "75376451", brand: "미즈노", silo: "모렐리아 네오", modelName: "미즈노 모렐리아 네오 4 프로 AG P1GA2535-37", groundTypes: ["AG"], fitWidth: "좁음", styleTag: "터치_컨트롤", weightClass: "정보없음", priceKrw: 74840, upperMaterial: "천연가죽", gender: "남성용" },
-  { id: "104224388", brand: "아디다스", silo: "F50", modelName: "아디다스 클럽 벨크로 TF JS1487", groundTypes: ["AG"], fitWidth: "좁음", styleTag: "스피드", weightClass: "정보없음", priceKrw: 28121, upperMaterial: "합성가죽", gender: "주니어용" },
-  { id: "86719379", brand: "나이키", silo: "팬텀", modelName: "나이키 팬텀 GX 2 엘리트 AG-PRO FJ2554-100", groundTypes: ["AG"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 245010, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "122618804", brand: "푸마", silo: "킹", modelName: "푸마 킹 20 얼티메이트 MG 108459-03", groundTypes: ["MG"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 142560, upperMaterial: "천연가죽", gender: "남성용" },
-  { id: "94129226", brand: "나이키", silo: "머큐리얼", modelName: "나이키 줌 머큐리얼 베이퍼 16 엘리트 AG 프로 FQ7861-100", groundTypes: ["AG"], fitWidth: "좁음", styleTag: "스피드", weightClass: "정보없음", priceKrw: 229000, upperMaterial: "니트", gender: "남성용" },
-  { id: "108226505", brand: "나이키", silo: "티엠포", modelName: "나이키 티엠포 마에스트로 아카데미 TF IB4484-100", groundTypes: ["TF"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 54900, upperMaterial: "천연가죽", gender: "남성용" },
-  { id: "106753931", brand: "미즈노", silo: "알파", modelName: "미즈노 알파3 엘리트 AS P1GD266264", groundTypes: ["AS"], fitWidth: "넓음", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 89900, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "108446933", brand: "푸마", silo: "울트라", modelName: "푸마 울트라 6 얼티메이트 MG 108999-03", groundTypes: ["MG"], fitWidth: "보통", styleTag: "스피드", weightClass: "정보없음", priceKrw: 156870, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "72416609", brand: "미즈노", silo: "모렐리아 네오", modelName: "미즈노 모렐리아 네오 4 베타 재팬 FG AG P1GA2536", groundTypes: ["FG", "AG"], fitWidth: "좁음", styleTag: "터치_컨트롤", weightClass: "정보없음", priceKrw: 215190, upperMaterial: "천연가죽", gender: "남성용" },
-  { id: "95204216", brand: "나이키", silo: "머큐리얼", modelName: "나이키 줌 머큐리얼 베이퍼 16 프로 HG FQ8686-100", groundTypes: ["HG"], fitWidth: "좁음", styleTag: "스피드", weightClass: "정보없음", priceKrw: 169000, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "93860060", brand: "미즈노", silo: "모나르시다 네오", modelName: "미즈노 모나르시다 네오 3 셀렉트 AG P1GA2526-60", groundTypes: ["AG"], fitWidth: "넓음", styleTag: "터치_컨트롤", weightClass: "정보없음", priceKrw: 48510, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "66453518", brand: "아디다스", silo: "프레데터", modelName: "아디다스 프레데터 엘리트 AG IG7766", groundTypes: ["AG"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 159090, upperMaterial: "천연가죽", gender: "남성용" },
-  { id: "77784575", brand: "나이키", silo: "팬텀", modelName: "나이키 팬텀 GX 엘리트 링크 FG DD9676-700", groundTypes: ["FG"], fitWidth: "보통", styleTag: "올라운드", weightClass: "정보없음", priceKrw: 80850, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "122619657", brand: "아디다스", silo: "F50", modelName: "아디다스 F50 클럽 벨크로 TF 키즈 JS1486", groundTypes: ["AG"], fitWidth: "좁음", styleTag: "스피드", weightClass: "정보없음", priceKrw: 27553, upperMaterial: "합성가죽", gender: "주니어용" },
-  { id: "puma_future7", brand: "푸마", silo: "퓨처", modelName: "푸마 퓨처 7 매치 FG AG", groundTypes: ["FG", "AG"], fitWidth: "넓음", styleTag: "터치_컨트롤", weightClass: "보통", priceKrw: 41390, upperMaterial: "합성가죽", gender: "남성용" },
-  { id: "adidas_copa", brand: "아디다스", silo: "코파", modelName: "아디다스 코파 퓨어 AG", groundTypes: ["AG"], fitWidth: "넓음", styleTag: "터치_컨트롤", weightClass: "보통", priceKrw: 89000, upperMaterial: "천연가죽", gender: "남성용" },
-];
-
 type Profile = {
-  groundType?: string;
-  injuryHistory?: boolean;
-  fitPreference?: string;
-  playStyle?: string;
-  budgetMaxKrw?: number;
+  place?: "school" | "turf" | "natural" | "mixed";
+  shoeFitFeel?: "tight" | "loose" | "ok";
+  archFeel?: "flat" | "normal" | "high";
+  playFeel?: "speed" | "control" | "allround";
+  budget?: number;
 };
 
-function filterAdultProducts(products: Product[]) {
-  return products.filter((p) => p.gender !== "주니어용");
+// place → groundType
+function placeToGround(p?: string): string {
+  if (p === "natural") return "FG";
+  if (p === "school" || p === "turf") return "AG";
+  return "AG"; // default mixed → AG (most common)
 }
-function filterSafeGroundTypes(products: Product[], profile: Profile) {
-  const target = profile.groundType;
-  return products.filter((p) => {
-    if (target && p.groundTypes.includes(target)) return true;
-    if (!profile.injuryHistory && target === "AG" && p.groundTypes.includes("FG")) return true;
-    return false;
-  });
+function fitFeelToWidth(f?: string): "넓음" | "보통" | "좁음" {
+  if (f === "tight") return "넓음"; // 신발이 끼면 → 본인 발이 넓은 편
+  if (f === "loose") return "좁음";
+  return "보통";
 }
-function filterBudget(products: Product[], profile: Profile) {
-  const cap = (profile.budgetMaxKrw ?? 0) * 1.1;
-  return products.filter((p) => p.priceKrw != null && p.priceKrw <= cap);
-}
-function pickFitFirst(products: Product[]) {
-  const wide = products.filter((p) => p.fitWidth === "넓음");
-  if (wide.length === 0) return null;
-  wide.sort((a, b) => b.priceKrw - a.priceKrw);
-  const chosen = wide[0];
-  return { product: chosen, reason: `발볼이 넓은 편이라는 진단을 1순위로 반영했어요. '${chosen.silo}' 계열은 발볼이 넉넉한 편으로 알려져 있어요.` };
-}
-function pickStyleFirst(budgetProducts: Product[], safeProducts: Product[], profile: Profile) {
-  let matched = budgetProducts.filter((p) => p.styleTag === profile.playStyle);
-  if (matched.length > 0) {
-    matched.sort((a, b) => a.priceKrw - b.priceKrw);
-    const chosen = matched[0];
-    let fitNote = "";
-    if (chosen.fitWidth === "좁음") {
-      fitNote = " 다만 이 라인은 발볼이 좁은 편으로 알려져 있어서, 평소 발볼이 넓다고 느끼셨다면 착화감이 타이트할 수 있어요.";
-    }
-    return { product: chosen, reason: `선호하시는 '${profile.playStyle}' 스타일을 1순위로 맞췄어요.${fitNote}`, overBudget: false };
-  }
-  matched = safeProducts.filter((p) => p.styleTag === profile.playStyle);
-  if (matched.length > 0) {
-    matched.sort((a, b) => a.priceKrw - b.priceKrw);
-    const chosen = matched[0];
-    const overAmount = chosen.priceKrw - (profile.budgetMaxKrw ?? 0);
-    return { product: chosen, reason: `선호하시는 '${profile.playStyle}' 스타일 제품은 말씀하신 예산(${(profile.budgetMaxKrw ?? 0).toLocaleString()}원) 안에는 없었어요. 가장 저렴한 옵션도 약 ${overAmount.toLocaleString()}원 정도 예산을 넘어요.`, overBudget: true };
-  }
-  return null;
-}
-function pickBalanced(budgetProducts: Product[], profile: Profile) {
-  const candidates = budgetProducts.filter((p) => p.fitWidth === "넓음" || p.fitWidth === "보통");
-  if (candidates.length === 0) return null;
-  const styleScore = (p: Product) => (p.styleTag === profile.playStyle ? 2 : profile.playStyle && p.styleTag.includes(profile.playStyle) ? 1 : 0);
-  candidates.sort((a, b) => styleScore(b) - styleScore(a) || a.priceKrw - b.priceKrw);
-  const chosen = candidates[0];
-  return { product: chosen, reason: `발볼 편안함과 '${profile.playStyle}' 스타일 사이의 절충안이에요. '${chosen.silo}' 계열은 발볼이 ${chosen.fitWidth}으로 알려져 있고, 스타일도 어느 정도 맞아요.` };
+
+type FinalProfile = {
+  groundType: string;
+  fitWidth: "넓음" | "보통" | "좁음";
+  playStyle: string;
+  budgetMaxKrw: number;
+};
+
+function buildFinalProfile(p: Profile, ai: FootAnalysis | null): FinalProfile {
+  // AI 분석 우선, 없거나 보통이면 설문 사용
+  const aiWidth = ai?.footWidth;
+  const surveyWidth = fitFeelToWidth(p.shoeFitFeel);
+  const fitWidth = aiWidth && aiWidth !== "보통" ? aiWidth : surveyWidth;
+  const playStyle =
+    p.playFeel === "speed" ? "스피드"
+    : p.playFeel === "control" ? "터치_컨트롤"
+    : "올라운드";
+  return {
+    groundType: placeToGround(p.place),
+    fitWidth,
+    playStyle,
+    budgetMaxKrw: p.budget ?? 200000,
+  };
 }
 
 type ResultItem = { label: string; product: Product | null; reason: string; overBudget: boolean };
 
-function recommend(profile: Profile): { error: string | null; results: ResultItem[] } {
-  const adult = filterAdultProducts(PRODUCTS);
-  const safe = filterSafeGroundTypes(adult, profile);
-  const budget = filterBudget(safe, profile);
-  if (safe.length === 0) return { error: "그라운드 조건에 맞는 제품이 없어요.", results: [] };
+function recommend(fp: FinalProfile, ai: FootAnalysis | null): ResultItem[] {
+  const safe = PRODUCTS.filter(
+    (p) => p.gender !== "주니어용" && p.groundTypes.includes(fp.groundType),
+  );
+  const budget = safe.filter((p) => p.priceKrw <= fp.budgetMaxKrw * 1.1);
 
-  const results: ResultItem[] = [];
-  const fit = pickFitFirst(budget);
-  results.push({ label: "핏 우선", product: fit?.product || null, reason: fit?.reason || "조건에 맞는 제품을 찾지 못했어요.", overBudget: false });
-  const style = pickStyleFirst(budget, safe, profile);
-  results.push({ label: "스타일 우선", product: style?.product || null, reason: style?.reason || "조건에 맞는 제품을 찾지 못했어요.", overBudget: style?.overBudget || false });
-  const bal = pickBalanced(budget, profile);
-  results.push({ label: "절충안", product: bal?.product || null, reason: bal?.reason || "조건에 맞는 제품을 찾지 못했어요.", overBudget: false });
-  return { error: null, results };
+  // 핏 우선
+  const fitTarget = fp.fitWidth;
+  const fitPool = budget.filter((p) => p.fitWidth === fitTarget);
+  const fit = (fitPool.length > 0 ? fitPool : budget.filter((p) => p.fitWidth !== (fitTarget === "넓음" ? "좁음" : "넓음")))
+    .sort((a, b) => b.priceKrw - a.priceKrw)[0] ?? null;
+  const fitReason = ai
+    ? `AI가 발을 분석한 결과 발볼이 '${ai.footWidth}'으로 보여요. 이에 맞춰 발볼 ${fit?.fitWidth ?? "보통"} 모델을 골랐어요.`
+    : `평소 신발 착화감을 기반으로 발볼 ${fit?.fitWidth ?? "보통"} 모델을 골랐어요.`;
+
+  // 스타일 우선
+  const styleMatch = budget.filter((p) => p.styleTag === fp.playStyle).sort((a, b) => a.priceKrw - b.priceKrw)[0];
+  const styleFallback = safe.filter((p) => p.styleTag === fp.playStyle).sort((a, b) => a.priceKrw - b.priceKrw)[0];
+  const style = styleMatch ?? styleFallback ?? null;
+  const styleOver = !styleMatch && !!styleFallback;
+  const styleReason = style
+    ? `${fp.playStyle === "스피드" ? "빠른 플레이" : fp.playStyle === "터치_컨트롤" ? "볼 컨트롤" : "안정적인 올라운드"} 스타일에 맞췄어요.${styleOver ? " 다만 예산을 살짝 넘어요." : ""}`
+    : "스타일 조건에 맞는 제품을 찾지 못했어요.";
+
+  // 절충안
+  const balCandidates = budget.filter((p) => p.fitWidth !== (fitTarget === "넓음" ? "좁음" : fitTarget === "좁음" ? "넓음" : "좁음"));
+  const bal = balCandidates.sort((a, b) => {
+    const sa = a.styleTag === fp.playStyle ? 0 : 1;
+    const sb = b.styleTag === fp.playStyle ? 0 : 1;
+    if (sa !== sb) return sa - sb;
+    return a.priceKrw - b.priceKrw;
+  })[0] ?? null;
+  const balReason = bal
+    ? `발볼 편안함과 스타일을 모두 적당히 챙긴 균형형이에요.`
+    : "절충안을 찾지 못했어요.";
+
+  return [
+    { label: "핏 우선", product: fit, reason: fitReason, overBudget: false },
+    { label: "스타일 우선", product: style, reason: styleReason, overBudget: styleOver },
+    { label: "절충안", product: bal, reason: balReason, overBudget: false },
+  ];
 }
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
@@ -141,10 +119,10 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 type ChecklistItem = { ok: boolean; text: string };
 
 function PhotoUploadStep({
-  stepIndex, totalSteps, title, subtitle, checklist, warnText, onNext, onBack,
+  stepIndex, totalSteps, title, subtitle, checklist, onNext, onBack,
 }: {
   stepIndex: number; totalSteps: number; title: string; subtitle: string;
-  checklist: ChecklistItem[]; warnText?: string;
+  checklist: ChecklistItem[];
   onNext: (preview: string | null) => void; onBack?: () => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
@@ -194,13 +172,6 @@ function PhotoUploadStep({
         ))}
       </ul>
 
-      {warnText && (
-        <div style={{ display: "flex", gap: 8, padding: 12, background: "#FFF8E1", borderRadius: 8, marginBottom: 16 }}>
-          <span>⚠️</span>
-          <p style={{ fontSize: 12, color: "#6B5A0B", margin: 0, lineHeight: 1.5 }}>{warnText}</p>
-        </div>
-      )}
-
       <button
         onClick={() => onNext(preview)}
         disabled={!preview}
@@ -212,12 +183,13 @@ function PhotoUploadStep({
   );
 }
 
-type SurveyOption = { value: string | number | boolean; label: string };
-function SurveyQuestion({
+type VisualOption = { value: string | number; emoji: string; label: string; hint?: string };
+
+function VisualSurveyQuestion({
   question, options, onAnswer, onBack, current, total,
 }: {
-  question: string; options: SurveyOption[];
-  onAnswer: (v: string | number | boolean) => void; onBack?: () => void;
+  question: string; options: VisualOption[];
+  onAnswer: (v: string | number) => void; onBack?: () => void;
   current: number; total: number;
 }) {
   return (
@@ -227,17 +199,19 @@ function SurveyQuestion({
         {onBack && (
           <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", padding: 0 }}>←</button>
         )}
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>간단한 질문</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>편하게 답해주세요</h2>
       </div>
-      <p style={{ fontSize: 15, fontWeight: 600, color: "#1A1A18", margin: "0 0 16px 0", lineHeight: 1.5 }}>{question}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ fontSize: 16, fontWeight: 600, color: "#1A1A18", margin: "0 0 16px 0", lineHeight: 1.5 }}>{question}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {options.map((opt, i) => (
           <button
             key={i}
             onClick={() => onAnswer(opt.value)}
-            style={{ width: "100%", textAlign: "left", padding: "14px 16px", borderRadius: 10, border: "1px solid #E5E2D9", background: "#fff", fontSize: 14, cursor: "pointer" }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "14px 12px", borderRadius: 12, border: "1.5px solid #E5E2D9", background: "#fff", cursor: "pointer", gap: 6, minHeight: 96 }}
           >
-            {opt.label}
+            <span style={{ fontSize: 28 }}>{opt.emoji}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A18", lineHeight: 1.35 }}>{opt.label}</span>
+            {opt.hint && <span style={{ fontSize: 11, color: "#9B9A95" }}>{opt.hint}</span>}
           </button>
         ))}
       </div>
@@ -245,19 +219,36 @@ function SurveyQuestion({
   );
 }
 
-function AnalyzingStep({ onDone }: { onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 1800);
-    return () => clearTimeout(t);
-  }, [onDone]);
-
+function AnalyzingStep({ progress, message }: { progress: number; message: string }) {
   return (
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ width: 48, height: 48, border: `3px solid ${GREEN_LIGHT}`, borderTopColor: GREEN, borderRadius: "50%", margin: "0 auto 20px", animation: "spin 0.9s linear infinite" }} />
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 8px 0" }}>발 모양을 분석하고 있어요</h2>
-      <p style={{ fontSize: 13, color: "#6B6A65", margin: 0 }}>사진과 답변을 바탕으로 딱 맞는 축구화를 찾고 있어요</p>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 8px 0" }}>{message}</h2>
+      <p style={{ fontSize: 13, color: "#6B6A65", margin: 0 }}>AI가 발 사진을 분석하고 있어요 · {progress}%</p>
     </div>
+  );
+}
+
+function FootAnalysisCard({ ai }: { ai: FootAnalysis }) {
+  return (
+    <div style={{ background: GREEN_LIGHT, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: GREEN, margin: "0 0 8px 0", letterSpacing: 0.3 }}>🦶 AI 발 분석 결과</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <Chip label={`발볼 ${ai.footWidth}`} />
+        <Chip label={`아치 ${ai.archHeight}`} />
+        <Chip label={`뒤꿈치 ${ai.heelWidth}`} />
+      </div>
+      <p style={{ fontSize: 13, color: "#1A4A3D", margin: 0, lineHeight: 1.6 }}>{ai.summary}</p>
+    </div>
+  );
+}
+
+function Chip({ label }: { label: string }) {
+  return (
+    <span style={{ background: "#fff", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 999 }}>
+      {label}
+    </span>
   );
 }
 
@@ -277,9 +268,28 @@ function ResultCard({ result }: { result: ResultItem }) {
       {product ? (
         <div>
           <p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A18", margin: "0 0 6px 0", lineHeight: 1.4 }}>{product.modelName}</p>
-          <p style={{ fontSize: 12, color: "#6B6A65", margin: "0 0 6px 0" }}>발볼 {product.fitWidth} · {product.silo}</p>
-          <p style={{ fontSize: 14, fontWeight: 700, color: GREEN, margin: "0 0 10px 0" }}>{product.priceKrw.toLocaleString()}원</p>
-          <p style={{ fontSize: 13, color: "#3A3A36", margin: 0, lineHeight: 1.6 }}>{reason}</p>
+          <p style={{ fontSize: 12, color: "#6B6A65", margin: "0 0 6px 0" }}>발볼 {product.fitWidth} · {product.silo} · {product.upperMaterial}</p>
+          <p style={{ fontSize: 16, fontWeight: 700, color: GREEN, margin: "0 0 10px 0" }}>{product.priceKrw.toLocaleString()}원</p>
+          <p style={{ fontSize: 13, color: "#3A3A36", margin: "0 0 10px 0", lineHeight: 1.6 }}>{reason}</p>
+
+          <div style={{ background: "#FAF9F5", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#6B6A65", margin: "0 0 4px 0", letterSpacing: 0.3 }}>💬 구매자 리뷰</p>
+            <p style={{ fontSize: 12, color: "#3A3A36", margin: "0 0 6px 0", lineHeight: 1.55, fontStyle: "italic" }}>"{product.reviewSnippet}"</p>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {product.reviewKeywords.map((k, i) => (
+                <span key={i} style={{ fontSize: 10, background: "#fff", color: "#6B6A65", padding: "2px 6px", borderRadius: 4, border: "1px solid #E5E2D9" }}>#{k}</span>
+              ))}
+            </div>
+          </div>
+
+          <a
+            href={product.lowestPriceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "block", width: "100%", boxSizing: "border-box", background: GREEN, color: "#fff", textAlign: "center", textDecoration: "none", padding: "12px 0", borderRadius: 8, fontSize: 13, fontWeight: 600 }}
+          >
+            {product.lowestPriceShop} 보러가기 →
+          </a>
         </div>
       ) : (
         <p style={{ fontSize: 13, color: "#6B6A65", margin: 0, lineHeight: 1.6 }}>{reason}</p>
@@ -289,50 +299,42 @@ function ResultCard({ result }: { result: ResultItem }) {
 }
 
 const FRONT_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "발가락부터 발뒤꿈치까지 전체가 보이게" },
-  { ok: true, text: "가장 넓은 부분(발볼)이 선명하게 보이게" },
-  { ok: true, text: "발가락은 자연스럽게 편 상태로" },
+  { ok: true, text: "발 전체가 보이게 위에서 정면으로" },
+  { ok: true, text: "발볼(가장 넓은 부분)이 선명하게" },
   { ok: false, text: "양말은 벗고, 비스듬한 각도는 피해주세요" },
 ];
 const SIDE_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "발의 완전한 옆모습(안쪽 또는 바깥쪽)" },
-  { ok: true, text: "카메라를 발과 수평으로 맞춰 촬영" },
-  { ok: true, text: "아치(발바닥 곡선)가 선명하게 보이게" },
+  { ok: true, text: "발의 옆모습 전체가 보이게" },
+  { ok: true, text: "아치(발바닥 곡선)가 선명하게" },
 ];
 const HEEL_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "뒤꿈치 중심이 화면 정중앙에 오게" },
-  { ok: true, text: "A4 용지 위에, 발 전체가 종이 안에 들어오게" },
-  { ok: true, text: "뒤꿈치 너비와 발목이 같이 보이도록" },
+  { ok: true, text: "뒤에서 뒤꿈치 중심이 보이게" },
+  { ok: true, text: "A4 용지 위에 올라가서 찍으면 더 정확해요" },
 ];
 
-type SurveyQ = { key: keyof Profile; question: string; options: SurveyOption[] };
+type SurveyQ = { key: keyof Profile; question: string; options: VisualOption[] };
 const SURVEY_QUESTIONS: SurveyQ[] = [
-  { key: "groundType", question: "주로 어디서 축구/풋살 하세요?", options: [
-    { value: "FG", label: "천연잔디 (진짜 초록 잔디 구장)" },
-    { value: "AG", label: "인조잔디 구장 (인공 잔디)" },
-    { value: "HG", label: "맨땅/흙구장" },
-    { value: "MG", label: "여러 구장 다 다녀요" },
+  { key: "place", question: "주로 어디서 차세요?", options: [
+    { value: "school", emoji: "🏫", label: "학교 운동장", hint: "인조잔디" },
+    { value: "turf", emoji: "⚽", label: "풋살장", hint: "인조잔디" },
+    { value: "natural", emoji: "🌱", label: "진짜 잔디 구장", hint: "천연잔디" },
+    { value: "mixed", emoji: "🔀", label: "여기저기 다 가요", hint: "멀티" },
   ]},
-  { key: "injuryHistory", question: "전에 신던 축구화나 운동화 때문에 다치거나 크게 불편했던 적 있어요?", options: [
-    { value: true, label: "네, 있어요 (발목 등)" },
-    { value: false, label: "아니요, 큰 문제 없었어요" },
+  { key: "shoeFitFeel", question: "평소 운동화 신을 때 발 앞쪽 느낌은 어떠세요?", options: [
+    { value: "tight", emoji: "😣", label: "꽉 끼는 편", hint: "발볼이 넓을 가능성" },
+    { value: "loose", emoji: "🫥", label: "헐렁한 편", hint: "발볼이 좁을 가능성" },
+    { value: "ok", emoji: "😊", label: "딱 맞아요", hint: "보통 발볼" },
   ]},
-  { key: "fitPreference", question: "평소 신발 신을 때 발볼(발 앞쪽 넓은 부분) 느낌은요?", options: [
-    { value: "넓음", label: "넓어서 헐렁한 느낌이 자주 있어요" },
-    { value: "좁음", label: "좁아서 끼는 느낌이 자주 있어요" },
-    { value: "보통", label: "보통이에요, 특별히 느낀 적 없어요" },
+  { key: "playFeel", question: "축구할 때 어떤 게 제일 재밌어요?", options: [
+    { value: "speed", emoji: "💨", label: "치고 달리기", hint: "스피드" },
+    { value: "control", emoji: "🎯", label: "볼 다루고 패스", hint: "터치" },
+    { value: "allround", emoji: "🛡️", label: "수비/안정적으로", hint: "올라운드" },
   ]},
-  { key: "playStyle", question: "포지션이나 플레이 스타일이 있나요?", options: [
-    { value: "스피드", label: "공격수 쪽 (스피드, 슈팅 위주)" },
-    { value: "터치_컨트롤", label: "미드필더 쪽 (볼 터치, 패스 위주)" },
-    { value: "올라운드", label: "수비수/골키퍼 쪽 (안정성 중요)" },
-    { value: "올라운드", label: "잘 모르겠어요, 즐기는 수준이에요" },
-  ]},
-  { key: "budgetMaxKrw", question: "예산은 어느 정도로 생각하세요?", options: [
-    { value: 50000, label: "5만원 이하" },
-    { value: 100000, label: "5~10만원" },
-    { value: 200000, label: "10~20만원" },
-    { value: 500000, label: "20만원 이상도 괜찮아요" },
+  { key: "budget", question: "축구화에 얼마나 쓸 수 있어요?", options: [
+    { value: 50000, emoji: "💰", label: "5만원 이하" },
+    { value: 100000, emoji: "💵", label: "10만원까지" },
+    { value: 200000, emoji: "💳", label: "20만원까지" },
+    { value: 500000, emoji: "✨", label: "좋은 거 OK" },
   ]},
 ];
 
@@ -342,36 +344,73 @@ function App() {
   const [step, setStep] = useState<Step>("intro");
   const [profile, setProfile] = useState<Profile>({});
   const [surveyIndex, setSurveyIndex] = useState(0);
-  const [results, setResults] = useState<ReturnType<typeof recommend> | null>(null);
+  const [photos, setPhotos] = useState<{ front: string | null; side: string | null; heel: string | null }>({ front: null, side: null, heel: null });
+  const [aiResult, setAiResult] = useState<FootAnalysis | null>(null);
+  const [results, setResults] = useState<ResultItem[] | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [analyzeMsg, setAnalyzeMsg] = useState("발 사진을 보내고 있어요");
 
-  const handleSurveyAnswer = (key: keyof Profile, value: string | number | boolean) => {
+  const callAnalyze = useServerFn(analyzeFoot);
+
+  const handleSurveyAnswer = (key: keyof Profile, value: string | number) => {
     const updated = { ...profile, [key]: value } as Profile;
     setProfile(updated);
-    if (surveyIndex + 1 < SURVEY_QUESTIONS.length) setSurveyIndex(surveyIndex + 1);
-    else {
-      setStep("analyzing");
-      // compute on analyze-done using latest profile
-      setTimeout(() => {}, 0);
+    if (surveyIndex + 1 < SURVEY_QUESTIONS.length) {
+      setSurveyIndex(surveyIndex + 1);
+    } else {
+      runAnalysis(updated);
     }
   };
 
-  const handleAnalyzeDone = () => {
-    setResults(recommend(profile));
-    setStep("results");
+  const runAnalysis = async (finalProfile: Profile) => {
+    setStep("analyzing");
+    setProgress(10);
+    setAnalyzeMsg("AI에게 발 사진 전송 중");
+
+    let ai: FootAnalysis | null = null;
+    try {
+      if (photos.front) {
+        setProgress(35);
+        setAnalyzeMsg("AI가 발 모양을 보고 있어요");
+        ai = await callAnalyze({
+          data: {
+            frontImage: photos.front,
+            sideImage: photos.side,
+            heelImage: photos.heel,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("analyze failed", err);
+    }
+    setAiResult(ai);
+    setProgress(80);
+    setAnalyzeMsg("딱 맞는 축구화 찾는 중");
+
+    const fp = buildFinalProfile(finalProfile, ai);
+    const r = recommend(fp, ai);
+    setProgress(100);
+    setTimeout(() => {
+      setResults(r);
+      setStep("results");
+    }, 600);
   };
 
   const restart = () => {
     setStep("intro");
     setProfile({});
     setSurveyIndex(0);
+    setPhotos({ front: null, side: null, heel: null });
+    setAiResult(null);
     setResults(null);
+    setProgress(0);
   };
 
   const groundLabel =
-    profile.groundType === "AG" ? "인조잔디"
-    : profile.groundType === "FG" ? "천연잔디"
-    : profile.groundType === "HG" ? "맨땅"
-    : "멀티";
+    profile.place === "natural" ? "천연잔디"
+    : profile.place === "school" ? "학교 운동장"
+    : profile.place === "turf" ? "풋살장"
+    : "여러 구장";
 
   return (
     <div style={{ minHeight: "100vh", background: "#FAF9F5", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: "#1A1A18" }}>
@@ -381,9 +420,9 @@ function App() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0" }}>발 사진으로 축구화 찾기</h1>
             <p style={{ fontSize: 14, color: "#6B6A65", margin: "0 0 8px 0", lineHeight: 1.6 }}>
-              사진 3장과 간단한 질문 5개면, 딱 맞는 축구화 3개를 추천해드려요
+              사진 3장 + 쉬운 질문 4개로<br/>AI가 내 발을 분석하고 추천해드려요
             </p>
-            <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 28px 0" }}>실제 다나와 상품 데이터 기반</p>
+            <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 28px 0" }}>실제 다나와 가격·리뷰 기반</p>
             <button onClick={() => setStep("photo-front")} style={{ width: "100%", background: "#1A1A18", color: "#fff", border: "none", height: 46, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               시작하기
             </button>
@@ -393,36 +432,35 @@ function App() {
         {step === "photo-front" && (
           <PhotoUploadStep
             stepIndex={0} totalSteps={3}
-            title="1/3 발 정면(위에서) 사진"
-            subtitle="발 위에서 정면으로 한 장 찍어주세요"
+            title="1/3 발을 위에서 찍어주세요"
+            subtitle="발 위에서 정면으로 한 장"
             checklist={FRONT_CHECKLIST}
-            onNext={() => setStep("photo-side")}
+            onNext={(p) => { setPhotos((prev) => ({ ...prev, front: p })); setStep("photo-side"); }}
           />
         )}
         {step === "photo-side" && (
           <PhotoUploadStep
             stepIndex={1} totalSteps={3}
-            title="2/3 발 옆모습 사진"
-            subtitle="발 옆에서 수평으로 한 장 찍어주세요"
+            title="2/3 발 옆모습"
+            subtitle="발 옆에서 수평으로 한 장"
             checklist={SIDE_CHECKLIST}
-            onNext={() => setStep("photo-heel")}
+            onNext={(p) => { setPhotos((prev) => ({ ...prev, side: p })); setStep("photo-heel"); }}
             onBack={() => setStep("photo-front")}
           />
         )}
         {step === "photo-heel" && (
           <PhotoUploadStep
             stepIndex={2} totalSteps={3}
-            title="3/3 발 뒤꿈치 사진"
-            subtitle="A4 용지 위에 올라가서 뒤에서 찍어주세요"
+            title="3/3 발 뒤꿈치"
+            subtitle="뒤에서 뒤꿈치가 보이게"
             checklist={HEEL_CHECKLIST}
-            warnText="가능하면 A4 용지를 깔고 발 전체가 보이도록 찍으면 분석이 더 정확해져요."
-            onNext={() => setStep("survey")}
+            onNext={(p) => { setPhotos((prev) => ({ ...prev, heel: p })); setStep("survey"); }}
             onBack={() => setStep("photo-side")}
           />
         )}
 
         {step === "survey" && (
-          <SurveyQuestion
+          <VisualSurveyQuestion
             current={surveyIndex}
             total={SURVEY_QUESTIONS.length}
             question={SURVEY_QUESTIONS[surveyIndex].question}
@@ -432,17 +470,14 @@ function App() {
           />
         )}
 
-        {step === "analyzing" && <AnalyzingStep onDone={handleAnalyzeDone} />}
+        {step === "analyzing" && <AnalyzingStep progress={progress} message={analyzeMsg} />}
 
         {step === "results" && results && (
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px 0" }}>이런 축구화를 추천해요</h2>
-            <p style={{ fontSize: 13, color: "#6B6A65", margin: "0 0 20px 0" }}>{groundLabel} 구장 기준</p>
-            {results.error ? (
-              <p style={{ fontSize: 14, color: "#B23636" }}>{results.error}</p>
-            ) : (
-              results.results.map((r, i) => <ResultCard key={i} result={r} />)
-            )}
+            <p style={{ fontSize: 13, color: "#6B6A65", margin: "0 0 16px 0" }}>{groundLabel} 기준</p>
+            {aiResult && <FootAnalysisCard ai={aiResult} />}
+            {results.map((r, i) => <ResultCard key={i} result={r} />)}
             <button onClick={restart} style={{ width: "100%", marginTop: 12, background: "transparent", color: "#6B6A65", border: "1px solid #E5E2D9", height: 44, borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
               처음부터 다시하기
             </button>
