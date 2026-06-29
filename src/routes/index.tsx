@@ -1,14 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeFoot, type FootAnalysis } from "@/lib/foot-analysis.functions";
 import { PRODUCTS, type Product } from "@/lib/products-data";
+import guideFront from "@/assets/guide-front.jpg";
+import guideSide from "@/assets/guide-side.jpg";
+import guideHeel from "@/assets/guide-heel.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "발 사진으로 축구화 찾기" },
-      { name: "description", content: "발 사진 + 쉬운 질문으로 AI가 발 모양을 분석하고 딱 맞는 축구화를 추천해드려요." },
+      { name: "description", content: "AI 발 분석과 전문 설문으로 내 발에 딱 맞는 축구화를 추천해드려요." },
     ],
   }),
   component: App,
@@ -19,20 +22,22 @@ const GREEN_LIGHT = "#E1F5EE";
 
 type Profile = {
   place?: "school" | "turf" | "natural" | "mixed";
+  shoeSizeMm?: number;
   shoeFitFeel?: "tight" | "loose" | "ok";
-  archFeel?: "flat" | "normal" | "high";
+  instepHeight?: "low" | "normal" | "high";
+  position?: "fw" | "mf" | "df" | "gk" | "any";
   playFeel?: "speed" | "control" | "allround";
+  injury?: "none" | "ankle" | "metatarsal" | "knee";
   budget?: number;
 };
 
-// place → groundType
 function placeToGround(p?: string): string {
   if (p === "natural") return "FG";
   if (p === "school" || p === "turf") return "AG";
-  return "AG"; // default mixed → AG (most common)
+  return "AG";
 }
 function fitFeelToWidth(f?: string): "넓음" | "보통" | "좁음" {
-  if (f === "tight") return "넓음"; // 신발이 끼면 → 본인 발이 넓은 편
+  if (f === "tight") return "넓음";
   if (f === "loose") return "좁음";
   return "보통";
 }
@@ -45,7 +50,6 @@ type FinalProfile = {
 };
 
 function buildFinalProfile(p: Profile, ai: FootAnalysis | null): FinalProfile {
-  // AI 분석 우선, 없거나 보통이면 설문 사용
   const aiWidth = ai?.footWidth;
   const surveyWidth = fitFeelToWidth(p.shoeFitFeel);
   const fitWidth = aiWidth && aiWidth !== "보통" ? aiWidth : surveyWidth;
@@ -69,7 +73,6 @@ function recommend(fp: FinalProfile, ai: FootAnalysis | null): ResultItem[] {
   );
   const budget = safe.filter((p) => p.priceKrw <= fp.budgetMaxKrw * 1.1);
 
-  // 핏 우선
   const fitTarget = fp.fitWidth;
   const fitPool = budget.filter((p) => p.fitWidth === fitTarget);
   const fit = (fitPool.length > 0 ? fitPool : budget.filter((p) => p.fitWidth !== (fitTarget === "넓음" ? "좁음" : "넓음")))
@@ -78,7 +81,6 @@ function recommend(fp: FinalProfile, ai: FootAnalysis | null): ResultItem[] {
     ? `AI가 발을 분석한 결과 발볼이 '${ai.footWidth}'으로 보여요. 이에 맞춰 발볼 ${fit?.fitWidth ?? "보통"} 모델을 골랐어요.`
     : `평소 신발 착화감을 기반으로 발볼 ${fit?.fitWidth ?? "보통"} 모델을 골랐어요.`;
 
-  // 스타일 우선
   const styleMatch = budget.filter((p) => p.styleTag === fp.playStyle).sort((a, b) => a.priceKrw - b.priceKrw)[0];
   const styleFallback = safe.filter((p) => p.styleTag === fp.playStyle).sort((a, b) => a.priceKrw - b.priceKrw)[0];
   const style = styleMatch ?? styleFallback ?? null;
@@ -87,7 +89,6 @@ function recommend(fp: FinalProfile, ai: FootAnalysis | null): ResultItem[] {
     ? `${fp.playStyle === "스피드" ? "빠른 플레이" : fp.playStyle === "터치_컨트롤" ? "볼 컨트롤" : "안정적인 올라운드"} 스타일에 맞췄어요.${styleOver ? " 다만 예산을 살짝 넘어요." : ""}`
     : "스타일 조건에 맞는 제품을 찾지 못했어요.";
 
-  // 절충안
   const balCandidates = budget.filter((p) => p.fitWidth !== (fitTarget === "넓음" ? "좁음" : fitTarget === "좁음" ? "넓음" : "좁음"));
   const bal = balCandidates.sort((a, b) => {
     const sa = a.styleTag === fp.playStyle ? 0 : 1;
@@ -119,9 +120,10 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 type ChecklistItem = { ok: boolean; text: string };
 
 function PhotoUploadStep({
-  stepIndex, totalSteps, title, subtitle, checklist, onNext, onBack,
+  stepIndex, totalSteps, title, subtitle, exampleSrc, exampleCaption, checklist, onNext, onBack,
 }: {
   stepIndex: number; totalSteps: number; title: string; subtitle: string;
+  exampleSrc: string; exampleCaption: string;
   checklist: ChecklistItem[];
   onNext: (preview: string | null) => void; onBack?: () => void;
 }) {
@@ -146,9 +148,18 @@ function PhotoUploadStep({
         <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h2>
       </div>
 
+      {/* 예시 사진 */}
+      <div style={{ background: GREEN_LIGHT, borderRadius: 12, padding: 12, marginBottom: 14, display: "flex", gap: 12, alignItems: "center" }}>
+        <img src={exampleSrc} alt="예시" style={{ width: 84, height: 110, objectFit: "cover", borderRadius: 8, background: "#fff", flexShrink: 0 }} />
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: GREEN, margin: "0 0 4px 0", letterSpacing: 0.3 }}>📸 이렇게 찍어주세요</p>
+          <p style={{ fontSize: 12, color: "#1A4A3D", margin: 0, lineHeight: 1.5 }}>{exampleCaption}</p>
+        </div>
+      </div>
+
       <div
         onClick={() => inputRef.current && inputRef.current.click()}
-        style={{ borderRadius: 12, border: preview ? "1px solid #E5E2D9" : "1.5px dashed #C9C5B8", height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16, cursor: "pointer", overflow: "hidden", background: preview ? "transparent" : "#FAF9F5" }}
+        style={{ borderRadius: 12, border: preview ? "1px solid #E5E2D9" : "1.5px dashed #C9C5B8", height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16, cursor: "pointer", overflow: "hidden", background: preview ? "transparent" : "#FAF9F5" }}
       >
         {preview ? (
           <img src={preview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -186,9 +197,9 @@ function PhotoUploadStep({
 type VisualOption = { value: string | number; emoji: string; label: string; hint?: string };
 
 function VisualSurveyQuestion({
-  question, options, onAnswer, onBack, current, total,
+  title, question, helper, options, onAnswer, onBack, current, total,
 }: {
-  question: string; options: VisualOption[];
+  title: string; question: string; helper?: string; options: VisualOption[];
   onAnswer: (v: string | number) => void; onBack?: () => void;
   current: number; total: number;
 }) {
@@ -199,22 +210,67 @@ function VisualSurveyQuestion({
         {onBack && (
           <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", padding: 0 }}>←</button>
         )}
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>편하게 답해주세요</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: GREEN }}>{title}</h2>
       </div>
-      <p style={{ fontSize: 16, fontWeight: 600, color: "#1A1A18", margin: "0 0 16px 0", lineHeight: 1.5 }}>{question}</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <p style={{ fontSize: 17, fontWeight: 700, color: "#1A1A18", margin: "0 0 6px 0", lineHeight: 1.45 }}>{question}</p>
+      {helper && <p style={{ fontSize: 12, color: "#6B6A65", margin: "0 0 14px 0", lineHeight: 1.5 }}>{helper}</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
         {options.map((opt, i) => (
           <button
             key={i}
             onClick={() => onAnswer(opt.value)}
             style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "14px 12px", borderRadius: 12, border: "1.5px solid #E5E2D9", background: "#fff", cursor: "pointer", gap: 6, minHeight: 96 }}
           >
-            <span style={{ fontSize: 28 }}>{opt.emoji}</span>
+            <span style={{ fontSize: 26 }}>{opt.emoji}</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A18", lineHeight: 1.35 }}>{opt.label}</span>
             {opt.hint && <span style={{ fontSize: 11, color: "#9B9A95" }}>{opt.hint}</span>}
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function NumberSurveyQuestion({
+  title, question, helper, placeholder, suffix, min, max, onAnswer, onBack, current, total,
+}: {
+  title: string; question: string; helper?: string; placeholder: string; suffix: string;
+  min: number; max: number;
+  onAnswer: (v: number) => void; onBack?: () => void;
+  current: number; total: number;
+}) {
+  const [val, setVal] = useState<string>("");
+  const num = Number(val);
+  const valid = val !== "" && Number.isFinite(num) && num >= min && num <= max;
+  return (
+    <div>
+      <ProgressBar current={current} total={total} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        {onBack && (
+          <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", padding: 0 }}>←</button>
+        )}
+        <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: GREEN }}>{title}</h2>
+      </div>
+      <p style={{ fontSize: 17, fontWeight: 700, color: "#1A1A18", margin: "0 0 6px 0", lineHeight: 1.45 }}>{question}</p>
+      {helper && <p style={{ fontSize: 12, color: "#6B6A65", margin: "0 0 18px 0", lineHeight: 1.5 }}>{helper}</p>}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, border: "1.5px solid #E5E2D9", borderRadius: 12, padding: "12px 16px" }}>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder={placeholder}
+          style={{ flex: 1, border: "none", outline: "none", fontSize: 22, fontWeight: 700, color: "#1A1A18", background: "transparent", minWidth: 0 }}
+        />
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#6B6A65" }}>{suffix}</span>
+      </div>
+      <button
+        onClick={() => valid && onAnswer(num)}
+        disabled={!valid}
+        style={{ width: "100%", background: valid ? "#1A1A18" : "#D3D1C7", color: "#fff", border: "none", height: 46, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: valid ? "pointer" : "not-allowed" }}
+      >
+        다음
+      </button>
     </div>
   );
 }
@@ -230,7 +286,7 @@ function AnalyzingStep({ progress, message }: { progress: number; message: strin
   );
 }
 
-function FootAnalysisCard({ ai }: { ai: FootAnalysis }) {
+function FootAnalysisCard({ ai, profile }: { ai: FootAnalysis; profile: Profile }) {
   return (
     <div style={{ background: GREEN_LIGHT, borderRadius: 12, padding: 14, marginBottom: 16 }}>
       <p style={{ fontSize: 12, fontWeight: 700, color: GREEN, margin: "0 0 8px 0", letterSpacing: 0.3 }}>🦶 AI 발 분석 결과</p>
@@ -238,6 +294,7 @@ function FootAnalysisCard({ ai }: { ai: FootAnalysis }) {
         <Chip label={`발볼 ${ai.footWidth}`} />
         <Chip label={`아치 ${ai.archHeight}`} />
         <Chip label={`뒤꿈치 ${ai.heelWidth}`} />
+        {profile.shoeSizeMm && <Chip label={`착화 ${profile.shoeSizeMm}mm`} />}
       </div>
       <p style={{ fontSize: 13, color: "#1A4A3D", margin: 0, lineHeight: 1.6 }}>{ai.summary}</p>
     </div>
@@ -299,42 +356,63 @@ function ResultCard({ result }: { result: ResultItem }) {
 }
 
 const FRONT_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "발 전체가 보이게 위에서 정면으로" },
-  { ok: true, text: "발볼(가장 넓은 부분)이 선명하게" },
-  { ok: false, text: "양말은 벗고, 비스듬한 각도는 피해주세요" },
+  { ok: true, text: "A4 용지 위에 맨발로 올라가서 위에서 수직으로" },
+  { ok: true, text: "발가락~뒤꿈치까지 전체가 프레임 안에" },
+  { ok: false, text: "양말·스타킹 착용, 비스듬한 각도는 분석 정확도가 떨어져요" },
 ];
 const SIDE_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "발의 옆모습 전체가 보이게" },
-  { ok: true, text: "아치(발바닥 곡선)가 선명하게" },
+  { ok: true, text: "발과 수평으로, 발등 높이와 아치 곡선이 보이게" },
+  { ok: true, text: "발 옆모습 전체가 프레임 안에" },
 ];
 const HEEL_CHECKLIST: ChecklistItem[] = [
-  { ok: true, text: "뒤에서 뒤꿈치 중심이 보이게" },
-  { ok: true, text: "A4 용지 위에 올라가서 찍으면 더 정확해요" },
+  { ok: true, text: "뒤에서 수평으로, 뒤꿈치 중심이 정중앙에" },
+  { ok: true, text: "발목·아킬레스건도 같이 보이게" },
 ];
 
-type SurveyQ = { key: keyof Profile; question: string; options: VisualOption[] };
-const SURVEY_QUESTIONS: SurveyQ[] = [
-  { key: "place", question: "주로 어디서 차세요?", options: [
-    { value: "school", emoji: "🏫", label: "학교 운동장", hint: "인조잔디" },
-    { value: "turf", emoji: "⚽", label: "풋살장", hint: "인조잔디" },
-    { value: "natural", emoji: "🌱", label: "진짜 잔디 구장", hint: "천연잔디" },
-    { value: "mixed", emoji: "🔀", label: "여기저기 다 가요", hint: "멀티" },
+type SurveyStep =
+  | { kind: "visual"; key: keyof Profile; title: string; question: string; helper?: string; options: VisualOption[] }
+  | { kind: "number"; key: keyof Profile; title: string; question: string; helper?: string; placeholder: string; suffix: string; min: number; max: number };
+
+const SURVEY_STEPS: SurveyStep[] = [
+  { kind: "visual", key: "place", title: "1. 경기 환경", question: "주로 어떤 구장에서 뛰시나요?", helper: "구장 표면에 따라 스터드 종류(AG/FG/MG)가 달라져요.", options: [
+    { value: "school", emoji: "🏫", label: "학교 운동장", hint: "인조잔디 · AG" },
+    { value: "turf", emoji: "⚽", label: "풋살장", hint: "인조잔디 · AG" },
+    { value: "natural", emoji: "🌱", label: "천연 잔디", hint: "FG 전용" },
+    { value: "mixed", emoji: "🔀", label: "여러 구장", hint: "MG/멀티" },
   ]},
-  { key: "shoeFitFeel", question: "평소 운동화 신을 때 발 앞쪽 느낌은 어떠세요?", options: [
-    { value: "tight", emoji: "😣", label: "꽉 끼는 편", hint: "발볼이 넓을 가능성" },
-    { value: "loose", emoji: "🫥", label: "헐렁한 편", hint: "발볼이 좁을 가능성" },
-    { value: "ok", emoji: "😊", label: "딱 맞아요", hint: "보통 발볼" },
+  { kind: "number", key: "shoeSizeMm", title: "2. 실측 사이즈", question: "평소 운동화 사이즈를 알려주세요", helper: "mm 단위로 입력하세요. (예: 265, 270) 한국 표준 풋 라스트와 매칭에 사용돼요.", placeholder: "265", suffix: "mm", min: 200, max: 320 },
+  { kind: "visual", key: "shoeFitFeel", title: "3. 발볼 자가진단", question: "평소 운동화 신을 때 발 앞쪽이 어떤가요?", helper: "축구화는 운동화보다 핏이 좁아 발볼 판단이 중요해요.", options: [
+    { value: "tight", emoji: "😣", label: "꽉 끼고 답답", hint: "발볼 넓을 가능성" },
+    { value: "ok", emoji: "😊", label: "딱 맞게 편함", hint: "표준 발볼" },
+    { value: "loose", emoji: "🫥", label: "헐렁한 편", hint: "발볼 좁을 가능성" },
   ]},
-  { key: "playFeel", question: "축구할 때 어떤 게 제일 재밌어요?", options: [
-    { value: "speed", emoji: "💨", label: "치고 달리기", hint: "스피드" },
-    { value: "control", emoji: "🎯", label: "볼 다루고 패스", hint: "터치" },
-    { value: "allround", emoji: "🛡️", label: "수비/안정적으로", hint: "올라운드" },
+  { kind: "visual", key: "instepHeight", title: "4. 발등 높이", question: "신발 끈을 매면 발등이 어떤가요?", helper: "발등 높이는 슈탕(혀)과 어퍼 텐션에 영향을 줘요.", options: [
+    { value: "low", emoji: "📏", label: "끈을 꽉 조여야", hint: "발등 낮음" },
+    { value: "normal", emoji: "👟", label: "평범하게 매도 됨", hint: "발등 보통" },
+    { value: "high", emoji: "🏔️", label: "끈을 풀어줘야", hint: "발등 높음" },
   ]},
-  { key: "budget", question: "축구화에 얼마나 쓸 수 있어요?", options: [
+  { kind: "visual", key: "position", title: "5. 포지션", question: "주 포지션은 무엇인가요?", helper: "포지션에 따라 필요한 어퍼 마감과 스터드 패턴이 달라요.", options: [
+    { value: "fw", emoji: "⚡", label: "공격수", hint: "스피드/슈팅" },
+    { value: "mf", emoji: "🎯", label: "미드필더", hint: "터치/패스" },
+    { value: "df", emoji: "🛡️", label: "수비수", hint: "안정/태클" },
+    { value: "gk", emoji: "🧤", label: "골키퍼", hint: "그립/스텝" },
+  ]},
+  { kind: "visual", key: "playFeel", title: "6. 플레이 성향", question: "어떤 플레이를 가장 자주 하시나요?", options: [
+    { value: "speed", emoji: "💨", label: "치고 달리기", hint: "스피드 실루엣" },
+    { value: "control", emoji: "🎯", label: "볼 컨트롤·패스", hint: "터치 실루엣" },
+    { value: "allround", emoji: "🛡️", label: "전천후·안정", hint: "올라운드" },
+  ]},
+  { kind: "visual", key: "injury", title: "7. 부상 이력", question: "최근 1년 내 발/발목 부상이 있었나요?", helper: "부상 부위에 따라 권장 스터드와 쿠셔닝이 달라져요.", options: [
+    { value: "none", emoji: "✅", label: "없음" },
+    { value: "ankle", emoji: "🦴", label: "발목 염좌" },
+    { value: "metatarsal", emoji: "🦶", label: "중족골 통증" },
+    { value: "knee", emoji: "🦵", label: "무릎 통증" },
+  ]},
+  { kind: "visual", key: "budget", title: "8. 예산", question: "축구화에 얼마까지 쓸 수 있나요?", options: [
     { value: 50000, emoji: "💰", label: "5만원 이하" },
     { value: 100000, emoji: "💵", label: "10만원까지" },
     { value: 200000, emoji: "💳", label: "20만원까지" },
-    { value: 500000, emoji: "✨", label: "좋은 거 OK" },
+    { value: 500000, emoji: "✨", label: "프리미엄 OK" },
   ]},
 ];
 
@@ -355,7 +433,7 @@ function App() {
   const handleSurveyAnswer = (key: keyof Profile, value: string | number) => {
     const updated = { ...profile, [key]: value } as Profile;
     setProfile(updated);
-    if (surveyIndex + 1 < SURVEY_QUESTIONS.length) {
+    if (surveyIndex + 1 < SURVEY_STEPS.length) {
       setSurveyIndex(surveyIndex + 1);
     } else {
       runAnalysis(updated);
@@ -412,6 +490,8 @@ function App() {
     : profile.place === "turf" ? "풋살장"
     : "여러 구장";
 
+  const current = SURVEY_STEPS[surveyIndex];
+
   return (
     <div style={{ minHeight: "100vh", background: "#FAF9F5", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: "#1A1A18" }}>
       <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
@@ -420,7 +500,7 @@ function App() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0" }}>발 사진으로 축구화 찾기</h1>
             <p style={{ fontSize: 14, color: "#6B6A65", margin: "0 0 8px 0", lineHeight: 1.6 }}>
-              사진 3장 + 쉬운 질문 4개로<br/>AI가 내 발을 분석하고 추천해드려요
+              AI 발 분석 + 전문 설문 8개로<br/>내 발에 딱 맞는 축구화를 찾아드려요
             </p>
             <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 28px 0" }}>실제 다나와 가격·리뷰 기반</p>
             <button onClick={() => setStep("photo-front")} style={{ width: "100%", background: "#1A1A18", color: "#fff", border: "none", height: 46, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
@@ -432,8 +512,10 @@ function App() {
         {step === "photo-front" && (
           <PhotoUploadStep
             stepIndex={0} totalSteps={3}
-            title="1/3 발을 위에서 찍어주세요"
-            subtitle="발 위에서 정면으로 한 장"
+            title="1/3 정면 사진"
+            subtitle="A4 위에 맨발 · 위에서 수직 촬영"
+            exampleSrc={guideFront}
+            exampleCaption="발 전체 형태와 발볼 너비를 확인해요. A4 용지 위에 맨발로 올라가서 위에서 수직으로 찍어주세요."
             checklist={FRONT_CHECKLIST}
             onNext={(p) => { setPhotos((prev) => ({ ...prev, front: p })); setStep("photo-side"); }}
           />
@@ -441,8 +523,10 @@ function App() {
         {step === "photo-side" && (
           <PhotoUploadStep
             stepIndex={1} totalSteps={3}
-            title="2/3 발 옆모습"
-            subtitle="발 옆에서 수평으로 한 장"
+            title="2/3 측면 사진"
+            subtitle="발과 수평으로 옆에서"
+            exampleSrc={guideSide}
+            exampleCaption="발등 높이와 아치 곡선을 확인해요. 카메라를 발과 수평으로 맞춰 옆에서 찍어주세요."
             checklist={SIDE_CHECKLIST}
             onNext={(p) => { setPhotos((prev) => ({ ...prev, side: p })); setStep("photo-heel"); }}
             onBack={() => setStep("photo-front")}
@@ -451,23 +535,43 @@ function App() {
         {step === "photo-heel" && (
           <PhotoUploadStep
             stepIndex={2} totalSteps={3}
-            title="3/3 발 뒤꿈치"
-            subtitle="뒤에서 뒤꿈치가 보이게"
+            title="3/3 뒤꿈치 사진"
+            subtitle="뒤에서 수평으로"
+            exampleSrc={guideHeel}
+            exampleCaption="뒤꿈치 너비와 발목 형태를 확인해요. 뒤꿈치 중심이 정중앙에 오도록 찍어주세요."
             checklist={HEEL_CHECKLIST}
             onNext={(p) => { setPhotos((prev) => ({ ...prev, heel: p })); setStep("survey"); }}
             onBack={() => setStep("photo-side")}
           />
         )}
 
-        {step === "survey" && (
-          <VisualSurveyQuestion
-            current={surveyIndex}
-            total={SURVEY_QUESTIONS.length}
-            question={SURVEY_QUESTIONS[surveyIndex].question}
-            options={SURVEY_QUESTIONS[surveyIndex].options}
-            onAnswer={(val) => handleSurveyAnswer(SURVEY_QUESTIONS[surveyIndex].key, val)}
-            onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("photo-heel")}
-          />
+        {step === "survey" && current && (
+          current.kind === "visual" ? (
+            <VisualSurveyQuestion
+              current={surveyIndex}
+              total={SURVEY_STEPS.length}
+              title={current.title}
+              question={current.question}
+              helper={current.helper}
+              options={current.options}
+              onAnswer={(val) => handleSurveyAnswer(current.key, val)}
+              onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("photo-heel")}
+            />
+          ) : (
+            <NumberSurveyQuestion
+              current={surveyIndex}
+              total={SURVEY_STEPS.length}
+              title={current.title}
+              question={current.question}
+              helper={current.helper}
+              placeholder={current.placeholder}
+              suffix={current.suffix}
+              min={current.min}
+              max={current.max}
+              onAnswer={(val) => handleSurveyAnswer(current.key, val)}
+              onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("photo-heel")}
+            />
+          )
         )}
 
         {step === "analyzing" && <AnalyzingStep progress={progress} message={analyzeMsg} />}
@@ -475,8 +579,8 @@ function App() {
         {step === "results" && results && (
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px 0" }}>이런 축구화를 추천해요</h2>
-            <p style={{ fontSize: 13, color: "#6B6A65", margin: "0 0 16px 0" }}>{groundLabel} 기준</p>
-            {aiResult && <FootAnalysisCard ai={aiResult} />}
+            <p style={{ fontSize: 13, color: "#6B6A65", margin: "0 0 16px 0" }}>{groundLabel} · 사이즈 {profile.shoeSizeMm ?? "-"}mm 기준</p>
+            {aiResult && <FootAnalysisCard ai={aiResult} profile={profile} />}
             {results.map((r, i) => <ResultCard key={i} result={r} />)}
             <button onClick={restart} style={{ width: "100%", marginTop: 12, background: "transparent", color: "#6B6A65", border: "1px solid #E5E2D9", height: 44, borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
               처음부터 다시하기
