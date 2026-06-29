@@ -6,6 +6,7 @@ import { PRODUCTS, type Product } from "@/lib/products-data";
 import guideFront from "@/assets/guide-front.jpg";
 import guideSide from "@/assets/guide-side.jpg";
 import guideHeel from "@/assets/guide-heel.jpg";
+import guideMistakes from "@/assets/guide-mistakes.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -496,13 +497,20 @@ function App() {
     <div style={{ minHeight: "100vh", background: "#FAF9F5", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: "#1A1A18" }}>
       <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         {step === "intro" && (
-          <div style={{ textAlign: "center", padding: "40px 8px" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
+          <div style={{ textAlign: "center", padding: "24px 4px" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0" }}>발 사진으로 축구화 찾기</h1>
-            <p style={{ fontSize: 14, color: "#6B6A65", margin: "0 0 8px 0", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: "#6B6A65", margin: "0 0 6px 0", lineHeight: 1.6 }}>
               AI 발 분석 + 전문 설문 8개로<br/>내 발에 딱 맞는 축구화를 찾아드려요
             </p>
-            <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 28px 0" }}>실제 다나와 가격·리뷰 기반</p>
+            <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 20px 0" }}>실제 다나와 가격·리뷰 기반</p>
+
+            <div style={{ background: "#FFF4F4", border: "1px solid #F5D6D6", borderRadius: 12, padding: 12, marginBottom: 20, textAlign: "left" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#B23636", margin: "0 0 8px 0" }}>❌ 이런 사진은 분석이 어려워요</p>
+              <img src={guideMistakes} alt="흔한 촬영 실수 예시" style={{ width: "100%", borderRadius: 8, display: "block" }} />
+              <p style={{ fontSize: 11, color: "#6B6A65", margin: "8px 0 0 0", lineHeight: 1.5 }}>각도 기울임 · 일부 잘림 · 너무 어두움 · 흔들림 · 필터 사용 · 양말 착용은 피해주세요.</p>
+            </div>
+
             <button onClick={() => setStep("photo-front")} style={{ width: "100%", background: "#1A1A18", color: "#fff", border: "none", height: 46, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               시작하기
             </button>
@@ -518,6 +526,7 @@ function App() {
             exampleCaption="발 전체 형태와 발볼 너비를 확인해요. A4 용지 위에 맨발로 올라가서 위에서 수직으로 찍어주세요."
             checklist={FRONT_CHECKLIST}
             onNext={(p) => { setPhotos((prev) => ({ ...prev, front: p })); setStep("photo-side"); }}
+            onBack={() => setStep("intro")}
           />
         )}
         {step === "photo-side" && (
