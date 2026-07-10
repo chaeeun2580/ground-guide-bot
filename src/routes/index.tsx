@@ -26,6 +26,25 @@ const LINE = "#EBEBEB";
 const BG   = "#FFFFFF";
 const BG2  = "#F6F5F2";
 
+// ── Size/fit knowledge base (silo-level) ─────────────────────────
+const SILO_FIT: Record<string, { note: string; adj: string }> = {
+  "머큐리얼":      { note: "발볼이 좁은 라스트예요.", adj: "발볼 넓은 분은 +5mm 추천" },
+  "모렐리아 네오": { note: "천연가죽이라 길들이면 늘어나요.", adj: "평소 사이즈로 구매하세요" },
+  "모렐리아":      { note: "천연가죽이라 길들이면 늘어나요.", adj: "평소 사이즈로 구매하세요" },
+  "티엠포":        { note: "발볼이 넉넉해요.", adj: "평소 사이즈로 구매하세요" },
+  "팬텀":          { note: "발볼이 평균적이에요.", adj: "평소 사이즈로 구매하세요" },
+  "코파":          { note: "천연가죽이라 길들이면 늘어나요.", adj: "평소 사이즈 또는 -5mm 가능" },
+  "퓨처":          { note: "발볼이 넉넉한 핏이에요.", adj: "평소 사이즈로 구매하세요" },
+  "킹":            { note: "클래식한 가죽 핏이에요.", adj: "평소 사이즈로 구매하세요" },
+  "알파":          { note: "한국 발형에 잘 맞아요.", adj: "평소 사이즈로 구매하세요" },
+  "모나르시다 네오":{ note: "발볼이 넉넉한 편이에요.", adj: "평소 사이즈로 구매하세요" },
+  "모나르시다":    { note: "발볼이 넉넉해요.", adj: "평소 사이즈로 구매하세요" },
+  "F50":           { note: "발볼이 좁은 라스트예요.", adj: "발볼 넓은 분은 +5mm 추천" },
+  "엑스":          { note: "발볼이 좁고 타이트해요.", adj: "+5mm 추천" },
+  "엑스 크레이지패스트": { note: "발볼이 좁은 편이에요.", adj: "+5mm 추천" },
+  "울트라":        { note: "발볼이 보통이에요.", adj: "평소 사이즈로 구매하세요" },
+};
+
 // ── Types ────────────────────────────────────────────────────────
 type Profile = {
   place?: "school" | "turf" | "natural" | "mixed";
@@ -82,7 +101,11 @@ function recommend(fp: FinalProfile, ai: FootAnalysis | null): ResultItem[] {
     ? `${fp.playStyle === "스피드" ? "빠른 플레이" : fp.playStyle === "터치_컨트롤" ? "볼 컨트롤" : "올라운드"} 스타일에 맞췄어요.${styleOver ? " 예산을 살짝 넘어요." : ""}`
     : "스타일 조건에 맞는 제품을 찾지 못했어요.";
   const bal = budget.filter((p) => p.fitWidth !== (fitTarget === "넓음" ? "좁음" : fitTarget === "좁음" ? "넓음" : "좁음"))
-    .sort((a, b) => { const sa = a.styleTag === fp.playStyle ? 0 : 1; const sb = b.styleTag === fp.playStyle ? 0 : 1; return sa !== sb ? sa - sb : a.priceKrw - b.priceKrw; })[0] ?? null;
+    .sort((a, b) => {
+      const sa = a.styleTag === fp.playStyle ? 0 : 1;
+      const sb = b.styleTag === fp.playStyle ? 0 : 1;
+      return sa !== sb ? sa - sb : a.priceKrw - b.priceKrw;
+    })[0] ?? null;
   return [
     { label: "핏 우선", product: fit, reason: fitReason, overBudget: false },
     { label: "스타일 우선", product: style, reason: styleReason, overBudget: styleOver },
@@ -100,7 +123,7 @@ function computeFitScore(product: Product, fp: FinalProfile): { total: number; m
   return { total, metrics: [["발볼 핏", fitScore], ["구장 매칭", groundScore], ["플레이 스타일", styleScore], ["예산 범위", budgetScore]] };
 }
 
-// ── Global CSS ───────────────────────────────────────────────────
+// ── CSS ──────────────────────────────────────────────────────────
 const CSS = `
   @keyframes scanDown {
     0%  { top:0%;  opacity:1; }
@@ -111,10 +134,12 @@ const CSS = `
     100%{ top:90%; opacity:1; }
   }
   @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
   .ff-h { font-family:'Big Shoulders Display',sans-serif; }
   .ff-m { font-family:'IBM Plex Mono',monospace; }
   .ff-btn:active { transform:scale(0.98); }
-  .ff-opt:hover { border-color:${G} !important; }
+  .ff-opt { transition: border-color 0.15s, background 0.15s; }
+  .ff-opt:active { transform:scale(0.99); }
 `;
 
 // ── Shared ───────────────────────────────────────────────────────
@@ -126,7 +151,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   );
 }
 function BackBtn({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 22, color: INK, marginBottom: 24, display: "block" }}>←</button>;
+  return <button onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 22, color: INK, marginBottom: 24, display: "block", lineHeight: 1 }}>←</button>;
 }
 
 // ── Photo upload ─────────────────────────────────────────────────
@@ -151,16 +176,17 @@ function PhotoUploadStep({ stepIndex, totalSteps, title, subtitle, exampleSrc, c
       <ProgressBar current={stepIndex} total={totalSteps} />
       {onBack && <BackBtn onClick={onBack} />}
       <p style={{ fontSize: 12, fontWeight: 600, color: G, margin: "0 0 6px", letterSpacing: 0.3 }}>{title}</p>
-      <h2 className="ff-h" style={{ fontSize: 28, fontWeight: 700, color: INK, margin: "0 0 24px", lineHeight: 1.15, whiteSpace: "pre-line" }}>{subtitle}</h2>
+      <h2 className="ff-h" style={{ fontSize: 28, fontWeight: 700, color: INK, margin: "0 0 20px", lineHeight: 1.15, whiteSpace: "pre-line" }}>{subtitle}</h2>
 
-      <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: 16, position: "relative" }}>
-        <img src={exampleSrc} alt="촬영 예시" style={{ width: "100%", height: 200, objectFit: "cover", display: "block" }} />
-        <div style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,0.55)", borderRadius: 6, padding: "4px 8px" }}>
+      {/* Example photo - full, unclipped */}
+      <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: 14, position: "relative", background: BG2 }}>
+        <img src={exampleSrc} alt="촬영 예시" style={{ width: "100%", display: "block", maxHeight: 260, objectFit: "contain" }} />
+        <div style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,0.55)", borderRadius: 6, padding: "3px 8px" }}>
           <span style={{ color: "#fff", fontSize: 11, fontWeight: 500 }}>예시 사진</span>
         </div>
       </div>
 
-      <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 5 }}>
         {checklist.map((item, i) => (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
             <span style={{ color: item.ok ? G : "#E05555", fontSize: 13, flexShrink: 0 }}>{item.ok ? "✓" : "✕"}</span>
@@ -169,13 +195,11 @@ function PhotoUploadStep({ stepIndex, totalSteps, title, subtitle, exampleSrc, c
         ))}
       </div>
 
-      <div
-        onClick={() => inputRef.current?.click()}
-        style={{ borderRadius: 12, border: `1.5px dashed ${preview ? G : LINE}`, height: 140, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 24, cursor: "pointer", overflow: "hidden", background: preview ? BG : BG2 }}
-      >
+      <div onClick={() => inputRef.current?.click()}
+        style={{ borderRadius: 12, border: `1.5px dashed ${preview ? G : LINE}`, height: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 24, cursor: "pointer", overflow: "hidden", background: preview ? BG : BG2 }}>
         {preview
           ? <img src={preview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <><span style={{ fontSize: 24 }}>📷</span><span style={{ fontSize: 13, color: SUB }}>탭해서 사진 선택</span></>
+          : <><span style={{ fontSize: 22 }}>📷</span><span style={{ fontSize: 13, color: SUB }}>탭해서 사진 선택</span></>
         }
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
@@ -188,30 +212,117 @@ function PhotoUploadStep({ stepIndex, totalSteps, title, subtitle, exampleSrc, c
   );
 }
 
+// ── Foot scan step (AI runs here, 3 photos cycle) ─────────────────
+const SCAN_INFO = [
+  { key: "front" as const, label: "정면 사진 분석 중...", step: "발볼 너비 측정 중" },
+  { key: "side"  as const, label: "측면 사진 분석 중...", step: "발등 높이 확인 중" },
+  { key: "heel"  as const, label: "뒤꿈치 사진 분석 중...", step: "아치 형태 분석 중" },
+];
+
+function FootScanStep({ photos, onComplete }: {
+  photos: { front: string | null; side: string | null; heel: string | null };
+  onComplete: (ai: FootAnalysis | null) => void;
+}) {
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [apiDone, setApiDone] = useState(false);
+  const aiRef = useRef<FootAnalysis | null>(null);
+  const available = SCAN_INFO.filter(p => photos[p.key] !== null);
+
+  useEffect(() => {
+    if (available.length <= 1) return;
+    const id = setInterval(() => setPhotoIdx(i => (i + 1) % available.length), 1600);
+    return () => clearInterval(id);
+  }, [available.length]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (photos.front) {
+          aiRef.current = await analyzeFoot({ frontImage: photos.front, sideImage: photos.side, heelImage: photos.heel });
+        }
+      } catch { /* fallback to null */ }
+      setApiDone(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!apiDone) return;
+    const id = setTimeout(() => onComplete(aiRef.current), 700);
+    return () => clearTimeout(id);
+  }, [apiDone]);
+
+  const cur = available[photoIdx % available.length];
+  const src = cur ? photos[cur.key] : null;
+
+  return (
+    <div style={{ padding: 24 }}>
+      {/* Photo dots indicator */}
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
+        {available.map((_, i) => (
+          <div key={i} style={{ width: 8, height: 8, borderRadius: 4, background: i === photoIdx % available.length ? G : LINE, transition: "background 0.3s" }} />
+        ))}
+      </div>
+
+      {src && (
+        <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 24 }}>
+          <img src={src} alt="발 분석 중" style={{ width: "100%", display: "block", maxHeight: 320, objectFit: "cover" }} />
+          <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent 0%,${G} 20%,#00FFCC 50%,${G} 80%,transparent 100%)`, boxShadow: `0 0 12px 2px ${G}`, animation: "scanDown 1.8s ease-in-out infinite", top: 0 }} />
+          {/* corner marks */}
+          {[[true,true,false,false],[true,false,false,true],[false,true,true,false],[false,false,true,true]].map(([bt,bl,bb,br],i) => (
+            <div key={i} style={{ position:"absolute", width:18, height:18, top:bt||!bb?8:undefined, bottom:bb?8:undefined, left:bl||!br?8:undefined, right:br?8:undefined, borderTop:bt?`2px solid ${G}`:"none", borderBottom:bb?`2px solid ${G}`:"none", borderLeft:bl?`2px solid ${G}`:"none", borderRight:br?`2px solid ${G}`:"none" }} />
+          ))}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)", padding: "32px 16px 14px" }}>
+            <p className="ff-m" style={{ color: "#00FFCC", fontSize: 12, margin: 0 }}>▶ {cur?.step}</p>
+          </div>
+        </div>
+      )}
+
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: INK, margin: "0 0 6px" }}>발 사진을 분석하고 있어요</h2>
+      <p style={{ fontSize: 13, color: SUB, margin: "0 0 16px" }}>{cur?.label}</p>
+      <div style={{ height: 4, borderRadius: 2, background: LINE, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: apiDone ? "100%" : "60%", background: G, borderRadius: 2, transition: "width 3s ease" }} />
+      </div>
+    </div>
+  );
+}
+
 // ── Survey components ────────────────────────────────────────────
 type VisualOption = { value: string | number; label: string; hint?: string };
 
-function VisualSurveyQuestion({ title, question, helper, options, onAnswer, onBack, current, total }: {
+function VisualSurveyQuestion({ title, question, helper, options, onAnswer, onBack, current, total, aiHint }: {
   title: string; question: string; helper?: string; options: VisualOption[];
-  onAnswer: (v: string | number) => void; onBack?: () => void; current: number; total: number;
+  onAnswer: (v: string | number) => void; onBack?: () => void;
+  current: number; total: number; aiHint?: string;
 }) {
+  const [selected, setSelected] = useState<string | number | null>(null);
+
   return (
     <div>
       <ProgressBar current={current} total={total} />
       {onBack && <BackBtn onClick={onBack} />}
       <p style={{ fontSize: 12, fontWeight: 600, color: G, margin: "0 0 6px", letterSpacing: 0.3 }}>{title}</p>
       <h2 className="ff-h" style={{ fontSize: 26, fontWeight: 700, color: INK, margin: "0 0 8px", lineHeight: 1.2 }}>{question}</h2>
-      {helper && <p style={{ fontSize: 13, color: SUB, margin: "0 0 24px", lineHeight: 1.55 }}>{helper}</p>}
-      {!helper && <div style={{ marginBottom: 24 }} />}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {options.map((opt, i) => (
-          <button key={i} className="ff-opt ff-btn" onClick={() => onAnswer(opt.value)}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", border: `1px solid ${LINE}`, borderRadius: 12, background: BG, cursor: "pointer", transition: "border-color 0.15s" }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: INK }}>{opt.label}</span>
-            {opt.hint && <span style={{ fontSize: 12, color: HINT }}>{opt.hint}</span>}
+      {helper && <p style={{ fontSize: 13, color: SUB, margin: "0 0 16px", lineHeight: 1.55 }}>{helper}</p>}
+      {aiHint && (
+        <div style={{ background: GL, borderRadius: 8, padding: "8px 12px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, color: G }}>AI 감지</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: G }}>{aiHint}</span>
+        </div>
+      )}
+      {!helper && !aiHint && <div style={{ marginBottom: 20 }} />}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {options.map((opt) => (
+          <button key={String(opt.value)} className="ff-opt" onClick={() => setSelected(opt.value)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", border: selected === opt.value ? `2px solid ${G}` : `1px solid ${LINE}`, borderRadius: 12, background: selected === opt.value ? GL : BG, cursor: "pointer", textAlign: "left" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: selected === opt.value ? G : INK }}>{opt.label}</span>
+            {opt.hint && <span style={{ fontSize: 12, color: selected === opt.value ? G : HINT }}>{opt.hint}</span>}
           </button>
         ))}
       </div>
+      <button className="ff-btn" onClick={() => selected !== null && onAnswer(selected)} disabled={selected === null}
+        style={{ width: "100%", background: selected !== null ? INK : LINE, color: selected !== null ? "#fff" : HINT, border: "none", height: 52, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: selected !== null ? "pointer" : "not-allowed" }}>
+        다음
+      </button>
     </div>
   );
 }
@@ -250,51 +361,10 @@ function NumberSurveyQuestion({ title, question, helper, placeholder, suffix, mi
   );
 }
 
-// ── Analyzing ────────────────────────────────────────────────────
-const SCAN_STEPS = ["발볼 너비 확인 중...", "발가락 형태 분석 중...", "아치 곡선 확인 중...", "발 특징 종합 중..."];
-
-function AnalyzingStep({ progress, message, photoSrc }: { progress: number; message: string; photoSrc?: string | null }) {
-  const [scanStep, setScanStep] = useState(0);
-  useEffect(() => {
-    if (!photoSrc) return;
-    const id = setInterval(() => setScanStep((s) => (s + 1) % SCAN_STEPS.length), 900);
-    return () => clearInterval(id);
-  }, [photoSrc]);
-
-  if (photoSrc) {
-    return (
-      <div>
-        <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 24 }}>
-          <img src={photoSrc} alt="발 분석 중" style={{ width: "100%", display: "block", maxHeight: 320, objectFit: "cover" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent 0%, ${G} 20%, #00FFCC 50%, ${G} 80%, transparent 100%)`, boxShadow: `0 0 12px 2px ${G}`, animation: "scanDown 1.8s ease-in-out infinite", top: 0 }} />
-          {[{t:8,l:8,bt:true,bl:true},{t:8,r:8,bt:true,br:true},{b:8,l:8,bb:true,bl:true},{b:8,r:8,bb:true,br:true}].map((p,i) => (
-            <div key={i} style={{ position:"absolute", width:18, height:18, top:(p as any).t, bottom:(p as any).b, left:(p as any).l, right:(p as any).r, borderTop:(p as any).bt?`2px solid ${G}`:"none", borderBottom:(p as any).bb?`2px solid ${G}`:"none", borderLeft:(p as any).bl?`2px solid ${G}`:"none", borderRight:(p as any).br?`2px solid ${G}`:"none" }} />
-          ))}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)", padding: "32px 16px 14px" }}>
-            <p className="ff-m" style={{ color: "#00FFCC", fontSize: 12, margin: 0 }}>▶ {SCAN_STEPS[scanStep]}</p>
-          </div>
-        </div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: INK, margin: "0 0 12px" }}>{message}</h2>
-        <div style={{ height: 4, borderRadius: 2, background: LINE, overflow: "hidden" }}>
-          <div style={{ height: "100%", background: G, width: `${progress}%`, transition: "width 0.4s ease", borderRadius: 2 }} />
-        </div>
-        <p className="ff-m" style={{ fontSize: 11, color: HINT, margin: "6px 0 0", textAlign: "right" }}>{progress}%</p>
-      </div>
-    );
-  }
-  return (
-    <div style={{ textAlign: "center", padding: "64px 0" }}>
-      <div style={{ width: 44, height: 44, border: `2.5px solid ${LINE}`, borderTopColor: G, borderRadius: "50%", margin: "0 auto 20px", animation: "spin 0.9s linear infinite" }} />
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: INK, margin: "0 0 6px" }}>{message}</h2>
-      <p style={{ fontSize: 13, color: SUB, margin: 0 }}>잠시만요 · {progress}%</p>
-    </div>
-  );
-}
-
-// ── Result card ──────────────────────────────────────────────────
+// ── Result components ────────────────────────────────────────────
 function FootAnalysisCard({ ai, profile }: { ai: FootAnalysis; profile: Profile }) {
   return (
-    <div style={{ background: GL, borderRadius: 14, padding: "16px 20px", marginBottom: 24 }}>
+    <div style={{ background: GL, borderRadius: 14, padding: "16px 20px", marginBottom: 24, animation: "fadeIn 0.4s ease" }}>
       <p className="ff-m" style={{ fontSize: 11, fontWeight: 500, color: G, margin: "0 0 10px", letterSpacing: 0.4 }}>AI 발 분석 결과</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         {[`발볼 ${ai.footWidth}`, `아치 ${ai.archHeight}`, `뒤꿈치 ${ai.heelWidth}`, profile.shoeSizeMm ? `${profile.shoeSizeMm}mm` : null].filter(Boolean).map((t, i) => (
@@ -317,9 +387,10 @@ function ResultCard({ result, fp }: { result: ResultItem; fp: FinalProfile }) {
 
   const { total, metrics } = computeFitScore(product, fp);
   const isTop = label === "핏 우선";
+  const siloFit = SILO_FIT[product.silo] ?? null;
 
   return (
-    <div style={{ border: `1px solid ${isTop ? G : LINE}`, borderRadius: 16, overflow: "hidden", marginBottom: 12, background: BG }}>
+    <div style={{ border: `1px solid ${isTop ? G : LINE}`, borderRadius: 16, overflow: "hidden", marginBottom: 12, background: BG, animation: "fadeIn 0.4s ease" }}>
       <div style={{ background: isTop ? G : BG2, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: isTop ? "#fff" : SUB }}>{label}{overBudget ? " · 예산 초과" : ""}</span>
         <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
@@ -330,7 +401,19 @@ function ResultCard({ result, fp }: { result: ResultItem; fp: FinalProfile }) {
       <div style={{ padding: "16px 20px" }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: INK, margin: "0 0 4px", lineHeight: 1.35 }}>{product.modelName}</h3>
         <p style={{ fontSize: 12, color: SUB, margin: "0 0 8px" }}>발볼 {product.fitWidth} · {product.silo} · {product.upperMaterial}</p>
-        <p className="ff-h" style={{ fontSize: 24, fontWeight: 800, color: isTop ? G : INK, margin: "0 0 12px" }}>{product.priceKrw.toLocaleString()}원</p>
+        <p className="ff-h" style={{ fontSize: 24, fontWeight: 800, color: isTop ? G : INK, margin: "0 0 10px" }}>{product.priceKrw.toLocaleString()}원</p>
+
+        {/* Size fit note */}
+        {siloFit && (
+          <div style={{ background: BG2, borderRadius: 8, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <span className="ff-m" style={{ fontSize: 10, color: G, flexShrink: 0, paddingTop: 2 }}>사이즈</span>
+            <div>
+              <p style={{ fontSize: 12, color: INK, margin: "0 0 1px", fontWeight: 600 }}>{siloFit.note}</p>
+              <p style={{ fontSize: 12, color: SUB, margin: 0 }}>{siloFit.adj}</p>
+            </div>
+          </div>
+        )}
+
         <p style={{ fontSize: 13, color: SUB, margin: "0 0 16px", lineHeight: 1.6 }}>{reason}</p>
 
         {/* Fit metrics */}
@@ -372,11 +455,11 @@ const HEEL_CL: ChecklistItem[] = [
   { ok: true, text: "발목·아킬레스건도 같이 보이게" },
 ];
 
-type SurveyStep =
-  | { kind: "visual"; key: keyof Profile; title: string; question: string; helper?: string; options: VisualOption[] }
+type SurveyStepDef =
+  | { kind: "visual"; key: keyof Profile; title: string; question: string; helper?: string; options: VisualOption[]; aiHintKey?: "footWidth" }
   | { kind: "number"; key: keyof Profile; title: string; question: string; helper?: string; placeholder: string; suffix: string; min: number; max: number };
 
-const SURVEY_STEPS: SurveyStep[] = [
+const SURVEY_STEPS: SurveyStepDef[] = [
   { kind: "visual", key: "place", title: "구장 환경 · 1/8", question: "주로 어디서 뛰시나요?", helper: "구장 표면에 따라 스터드 종류가 달라져요.", options: [
     { value: "school", label: "학교 운동장", hint: "AG" },
     { value: "turf",   label: "풋살장", hint: "AG" },
@@ -384,15 +467,15 @@ const SURVEY_STEPS: SurveyStep[] = [
     { value: "mixed",  label: "여러 구장", hint: "MG" },
   ]},
   { kind: "number", key: "shoeSizeMm", title: "사이즈 · 2/8", question: "평소 운동화 사이즈는?", helper: "mm 단위로 입력해주세요 (예: 265)", placeholder: "265", suffix: "mm", min: 200, max: 320 },
-  { kind: "visual", key: "shoeFitFeel", title: "발볼 자가진단 · 3/8", question: "운동화 신을 때 발 앞쪽이 어떤가요?", options: [
+  { kind: "visual", key: "shoeFitFeel", title: "발볼 자가진단 · 3/8", question: "운동화 신을 때 발 앞쪽이 어떤가요?", aiHintKey: "footWidth", options: [
     { value: "tight", label: "꽉 끼고 답답해요", hint: "발볼 넓음" },
     { value: "ok",    label: "딱 맞게 편해요",   hint: "표준" },
     { value: "loose", label: "헐렁한 편이에요",  hint: "발볼 좁음" },
   ]},
   { kind: "visual", key: "instepHeight", title: "발등 높이 · 4/8", question: "신발 끈 매면 발등이 어떤가요?", options: [
-    { value: "low",    label: "꽉 조여야 편해요",    hint: "발등 낮음" },
-    { value: "normal", label: "평범하게 매도 돼요",   hint: "보통" },
-    { value: "high",   label: "끈을 풀어야 편해요",   hint: "발등 높음" },
+    { value: "low",    label: "꽉 조여야 편해요",  hint: "발등 낮음" },
+    { value: "normal", label: "평범하게 매도 돼요", hint: "보통" },
+    { value: "high",   label: "끈을 풀어야 편해요", hint: "발등 높음" },
   ]},
   { kind: "visual", key: "position", title: "포지션 · 5/8", question: "주 포지션은 무엇인가요?", options: [
     { value: "fw", label: "공격수", hint: "스피드/슈팅" },
@@ -406,10 +489,10 @@ const SURVEY_STEPS: SurveyStep[] = [
     { value: "allround", label: "전천후·안정",    hint: "올라운드" },
   ]},
   { kind: "visual", key: "injury", title: "부상 이력 · 7/8", question: "최근 1년 내 부상이 있었나요?", options: [
-    { value: "none",        label: "없음" },
-    { value: "ankle",       label: "발목 염좌" },
-    { value: "metatarsal",  label: "중족골 통증" },
-    { value: "knee",        label: "무릎 통증" },
+    { value: "none",       label: "없음" },
+    { value: "ankle",      label: "발목 염좌" },
+    { value: "metatarsal", label: "중족골 통증" },
+    { value: "knee",       label: "무릎 통증" },
   ]},
   { kind: "visual", key: "budget", title: "예산 · 8/8", question: "축구화에 얼마까지 쓸 수 있나요?", options: [
     { value: 50000,  label: "5만원 이하" },
@@ -420,7 +503,7 @@ const SURVEY_STEPS: SurveyStep[] = [
 ];
 
 // ── App ──────────────────────────────────────────────────────────
-type Step = "intro" | "photo-front" | "photo-side" | "photo-heel" | "survey" | "analyzing" | "results";
+type Step = "intro" | "photo-front" | "photo-side" | "photo-heel" | "foot-scan" | "survey" | "results";
 
 function App() {
   const [step, setStep] = useState<Step>("intro");
@@ -429,44 +512,41 @@ function App() {
   const [photos, setPhotos] = useState<{ front: string | null; side: string | null; heel: string | null }>({ front: null, side: null, heel: null });
   const [aiResult, setAiResult] = useState<FootAnalysis | null>(null);
   const [results, setResults] = useState<ResultItem[] | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [analyzeMsg, setAnalyzeMsg] = useState("");
   const [fp, setFp] = useState<FinalProfile | null>(null);
 
   const handleSurveyAnswer = (key: keyof Profile, value: string | number) => {
     const updated = { ...profile, [key]: value } as Profile;
     setProfile(updated);
-    if (surveyIndex + 1 < SURVEY_STEPS.length) setSurveyIndex(surveyIndex + 1);
-    else runAnalysis(updated);
+    if (surveyIndex + 1 < SURVEY_STEPS.length) {
+      setSurveyIndex(surveyIndex + 1);
+    } else {
+      // All survey done → generate results
+      const finalFp = buildFinalProfile(updated, aiResult);
+      setFp(finalFp);
+      setResults(recommend(finalFp, aiResult));
+      setStep("results");
+    }
   };
 
-  const runAnalysis = async (finalProfile: Profile) => {
-    setStep("analyzing"); setProgress(10); setAnalyzeMsg("발볼 너비 확인 중...");
-    let ai: FootAnalysis | null = null;
-    try {
-      if (photos.front) {
-        setProgress(30); setAnalyzeMsg("발가락 형태 분석 중...");
-        ai = await analyzeFoot({ frontImage: photos.front, sideImage: photos.side, heelImage: photos.heel });
-        setProgress(65); setAnalyzeMsg("아치 곡선 확인 중...");
-        await new Promise((r) => setTimeout(r, 600));
-      }
-    } catch (err) { console.error(err); }
-    setAiResult(ai); setProgress(80); setAnalyzeMsg("딱 맞는 축구화 찾는 중");
-    const finalFp = buildFinalProfile(finalProfile, ai);
-    setFp(finalFp);
-    const r = recommend(finalFp, ai);
-    setProgress(100);
-    setTimeout(() => { setResults(r); setStep("results"); }, 600);
+  const handleScanComplete = (ai: FootAnalysis | null) => {
+    setAiResult(ai);
+    setStep("survey");
   };
 
   const restart = () => {
     setStep("intro"); setProfile({}); setSurveyIndex(0);
     setPhotos({ front: null, side: null, heel: null });
-    setAiResult(null); setResults(null); setProgress(0); setFp(null);
+    setAiResult(null); setResults(null); setFp(null);
   };
 
   const groundLabel = profile.place === "natural" ? "천연잔디" : profile.place === "school" ? "학교 운동장" : profile.place === "turf" ? "풋살장" : "여러 구장";
   const current = SURVEY_STEPS[surveyIndex];
+
+  // AI hint for foot width question
+  const aiHint = (s: SurveyStepDef) =>
+    s.kind === "visual" && s.aiHintKey === "footWidth" && aiResult?.footWidth
+      ? `발볼 ${aiResult.footWidth}`
+      : undefined;
 
   return (
     <div style={{ minHeight: "100vh", background: BG2, fontFamily: "-apple-system, 'Inter', sans-serif", color: INK }}>
@@ -477,7 +557,14 @@ function App() {
         {step === "intro" && (
           <div style={{ paddingBottom: 100 }}>
             {/* Dark hero */}
-            <div style={{ background: INK, padding: "48px 24px 40px" }}>
+            <div style={{ background: INK, padding: "0 24px 40px" }}>
+              {/* Logo header */}
+              <div style={{ display: "flex", alignItems: "center", padding: "20px 0 32px" }}>
+                <span className="ff-h" style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>FootFit</span>
+                <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: 3, background: G, display: "inline-block", marginBottom: 2 }} />
+              </div>
+
+              {/* Sample analysis preview */}
               <div style={{ marginBottom: 28 }}>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   {[["발볼", "넓음"], ["아치", "보통"], ["뒤꿈치", "보통"]].map(([k, v]) => (
@@ -489,13 +576,14 @@ function App() {
                 </div>
                 <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>추천 제품</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>추천 제품</span>
                     <span className="ff-m" style={{ fontSize: 11, fontWeight: 600, color: "#00FFAA" }}>발 적합도 94%</span>
                   </div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: "0 0 2px" }}>미즈노 알파3 엘리트 AS</p>
                   <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0 }}>89,900원 · 다나와 최저가</p>
                 </div>
               </div>
+
               <h1 className="ff-h" style={{ fontSize: 46, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
                 축구화 사기 전에<br />발부터<br />재보세요.
               </h1>
@@ -521,7 +609,7 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div style={{ paddingTop: 28, marginTop: 4 }}>
+              <div style={{ paddingTop: 28 }}>
                 <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 8px", fontStyle: "italic" }}>
                   "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
                 </p>
@@ -541,22 +629,50 @@ function App() {
         )}
 
         {/* ── PHOTO STEPS ── */}
-        {step === "photo-front" && <div style={{ padding: 24 }}><PhotoUploadStep stepIndex={0} totalSteps={3} title="1 / 3 · 정면 사진" subtitle={"발 전체가 보이게\n위에서 찍어주세요"} exampleSrc={guideFront} checklist={FRONT_CL} onNext={(p) => { setPhotos((prev) => ({ ...prev, front: p })); setStep("photo-side"); }} onBack={() => setStep("intro")} /></div>}
-        {step === "photo-side" && <div style={{ padding: 24 }}><PhotoUploadStep stepIndex={1} totalSteps={3} title="2 / 3 · 측면 사진" subtitle={"발등 높이와 아치가\n보이게 옆에서 찍어주세요"} exampleSrc={guideSide} checklist={SIDE_CL} onNext={(p) => { setPhotos((prev) => ({ ...prev, side: p })); setStep("photo-heel"); }} onBack={() => setStep("photo-front")} /></div>}
-        {step === "photo-heel" && <div style={{ padding: 24 }}><PhotoUploadStep stepIndex={2} totalSteps={3} title="3 / 3 · 뒤꿈치 사진" subtitle={"뒤꿈치 중심이\n정중앙에 오게 찍어주세요"} exampleSrc={guideHeel} checklist={HEEL_CL} onNext={(p) => { setPhotos((prev) => ({ ...prev, heel: p })); setStep("survey"); }} onBack={() => setStep("photo-side")} /></div>}
-
-        {/* ── SURVEY ── */}
-        {step === "survey" && current && (
+        {step === "photo-front" && (
           <div style={{ padding: 24 }}>
-            {current.kind === "visual"
-              ? <VisualSurveyQuestion current={surveyIndex} total={SURVEY_STEPS.length} title={current.title} question={current.question} helper={current.helper} options={current.options} onAnswer={(val) => handleSurveyAnswer(current.key, val)} onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("photo-heel")} />
-              : <NumberSurveyQuestion current={surveyIndex} total={SURVEY_STEPS.length} title={current.title} question={current.question} helper={current.helper} placeholder={current.placeholder} suffix={current.suffix} min={current.min} max={current.max} onAnswer={(val) => handleSurveyAnswer(current.key, val)} onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("photo-heel")} />
-            }
+            <PhotoUploadStep stepIndex={0} totalSteps={3} title="1 / 3 · 정면 사진" subtitle={"발 전체가 보이게\n위에서 찍어주세요"} exampleSrc={guideFront} checklist={FRONT_CL}
+              onNext={(p) => { setPhotos((prev) => ({ ...prev, front: p })); setStep("photo-side"); }} onBack={() => setStep("intro")} />
+          </div>
+        )}
+        {step === "photo-side" && (
+          <div style={{ padding: 24 }}>
+            <PhotoUploadStep stepIndex={1} totalSteps={3} title="2 / 3 · 측면 사진" subtitle={"발등 높이와 아치가\n보이게 옆에서 찍어주세요"} exampleSrc={guideSide} checklist={SIDE_CL}
+              onNext={(p) => { setPhotos((prev) => ({ ...prev, side: p })); setStep("photo-heel"); }} onBack={() => setStep("photo-front")} />
+          </div>
+        )}
+        {step === "photo-heel" && (
+          <div style={{ padding: 24 }}>
+            <PhotoUploadStep stepIndex={2} totalSteps={3} title="3 / 3 · 뒤꿈치 사진" subtitle={"뒤꿈치 중심이\n정중앙에 오게 찍어주세요"} exampleSrc={guideHeel} checklist={HEEL_CL}
+              onNext={(p) => { setPhotos((prev) => ({ ...prev, heel: p })); setStep("foot-scan"); }} onBack={() => setStep("photo-side")} />
           </div>
         )}
 
-        {/* ── ANALYZING ── */}
-        {step === "analyzing" && <div style={{ padding: 24 }}><AnalyzingStep progress={progress} message={analyzeMsg} photoSrc={photos.front} /></div>}
+        {/* ── FOOT SCAN (AI analysis runs here) ── */}
+        {step === "foot-scan" && (
+          <FootScanStep photos={photos} onComplete={handleScanComplete} />
+        )}
+
+        {/* ── SURVEY (with AI context) ── */}
+        {step === "survey" && current && (
+          <div style={{ padding: 24 }}>
+            {/* Show mini AI result bar during survey */}
+            {aiResult && (
+              <div style={{ background: GL, borderRadius: 8, padding: "8px 14px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
+                <p className="ff-m" style={{ fontSize: 10, color: G, margin: 0, letterSpacing: 0.3 }}>AI 분석</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[`발볼 ${aiResult.footWidth}`, `아치 ${aiResult.archHeight}`].map(t => (
+                    <span key={t} style={{ fontSize: 11, fontWeight: 600, color: G, background: "#fff", padding: "2px 8px", borderRadius: 100 }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {current.kind === "visual"
+              ? <VisualSurveyQuestion key={surveyIndex} current={surveyIndex} total={SURVEY_STEPS.length} title={current.title} question={current.question} helper={current.helper} options={current.options} aiHint={aiHint(current)} onAnswer={(val) => handleSurveyAnswer(current.key, val)} onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("foot-scan")} />
+              : <NumberSurveyQuestion key={surveyIndex} current={surveyIndex} total={SURVEY_STEPS.length} title={current.title} question={current.question} helper={current.helper} placeholder={current.placeholder} suffix={current.suffix} min={current.min} max={current.max} onAnswer={(val) => handleSurveyAnswer(current.key, val)} onBack={surveyIndex > 0 ? () => setSurveyIndex(surveyIndex - 1) : () => setStep("foot-scan")} />
+            }
+          </div>
+        )}
 
         {/* ── RESULTS ── */}
         {step === "results" && results && fp && (
