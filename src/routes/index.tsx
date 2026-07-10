@@ -157,6 +157,30 @@ function BackBtn({ onClick }: { onClick: () => void }) {
   return <button onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 22, color: INK, marginBottom: 24, display: "block", lineHeight: 1 }}>←</button>;
 }
 
+// 스크롤해서 뷰포트에 들어오면 카드가 살아나는 reveal 래퍼
+function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { setShown(true); io.disconnect(); } });
+    }, { threshold: 0.2, rootMargin: "0px 0px -40px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{
+      opacity: shown ? 1 : 0,
+      transform: shown ? "translateY(0) scale(1)" : "translateY(22px) scale(0.98)",
+      transition: `opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 // ── Photo upload ─────────────────────────────────────────────────
 type ChecklistItem = { ok: boolean; text: string };
 
@@ -199,9 +223,9 @@ function PhotoUploadStep({ stepIndex, totalSteps, title, subtitle, exampleSrc, c
       </div>
 
       <div onClick={() => inputRef.current?.click()}
-        style={{ borderRadius: 12, border: `1.5px dashed ${preview ? G : LINE}`, height: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 24, cursor: "pointer", overflow: "hidden", background: preview ? BG : BG2 }}>
+        style={{ borderRadius: 12, border: `1.5px dashed ${preview ? G : LINE}`, minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 24, cursor: "pointer", overflow: "hidden", background: BG2 }}>
         {preview
-          ? <img src={preview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ? <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 280, display: "block", objectFit: "contain" }} />
           : <><span style={{ fontSize: 22 }}>📷</span><span style={{ fontSize: 13, color: SUB }}>탭해서 사진 선택</span></>
         }
       </div>
@@ -465,11 +489,21 @@ const HERO_STATES = [
 ];
 
 const REVIEWS = [
-  { text: "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요.", info: "27세 · 주 2회 풋살", shoe: "미즈노 알파3 엘리트 AS" },
-  { text: "머큐리얼 원래 꽉 낀다 했는데 한 사이즈 크게 사라고 알려줘서 딱 맞게 샀습니다.", info: "32세 · 학교 운동장", shoe: "나이키 머큐리얼 베이퍼 16" },
-  { text: "발 사진 찍는 거 처음엔 어색했는데 결과가 생각보다 훨씬 정확해요. 아치 분석이 특히 맞았음.", info: "19세 · 주 3회 풋살", shoe: "아디다스 코파 퓨어 AG" },
-  { text: "AG/FG 구분도 해줘서 좋았어요. 천연잔디 쓰는데 FG 추천해줘서 부상 걱정 없이 씀.", info: "24세 · 천연잔디 주 1회", shoe: "미즈노 모렐리아 네오 4" },
+  { text: "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요.", info: "27세 · 주 2회 풋살", shoe: "미즈노 알파3 엘리트 AS", rating: 5 },
+  { text: "머큐리얼 원래 꽉 낀다 했는데 한 사이즈 크게 사라고 알려줘서 딱 맞게 샀습니다.", info: "32세 · 학교 운동장", shoe: "나이키 머큐리얼 베이퍼 16", rating: 5 },
+  { text: "발 사진 찍는 거 처음엔 어색했는데 결과가 생각보다 훨씬 정확해요. 아치 분석이 특히 맞았음.", info: "19세 · 주 3회 풋살", shoe: "아디다스 코파 퓨어 AG", rating: 5 },
+  { text: "AG/FG 구분도 해줘서 좋았어요. 천연잔디 쓰는데 FG 추천해줘서 부상 걱정 없이 씀.", info: "24세 · 천연잔디 주 1회", shoe: "미즈노 모렐리아 네오 4", rating: 4 },
+  { text: "발등이 높은 편인데 끈 조절 팁까지 같이 알려줘서 신을 때 아프지 않아요.", info: "29세 · 풋살장 주 1회", shoe: "아디다스 F50 엘리트 AG", rating: 5 },
+  { text: "예산 맞춰서 세 켤레 비교해준 게 좋았어요. 고민 없이 바로 결정했습니다.", info: "22세 · 여러 구장", shoe: "나이키 팬텀 GX2 아카데미", rating: 5 },
 ];
+
+function Stars({ n }: { n: number }) {
+  return (
+    <span style={{ letterSpacing: 1.5, fontSize: 12, color: "#FFB020" }}>
+      {"★".repeat(n)}{"☆".repeat(5 - n)}
+    </span>
+  );
+}
 
 function IntroScreen({ onStart }: { onStart: () => void }) {
   const [heroIdx, setHeroIdx] = useState(0);
@@ -566,8 +600,8 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
         </button>
       </div>
 
-      {/* ── Gradient bridge dark→white ── */}
-      <div style={{ height: 72, background: "linear-gradient(to bottom, #111111 0%, #ffffff 100%)" }} />
+      {/* ── Gradient bridge dark→white (부드럽게 여러 단계로) ── */}
+      <div style={{ height: 110, background: "linear-gradient(to bottom, #111111 0%, #2b2b2b 22%, #6b6b6b 55%, #e9e9e9 82%, #ffffff 100%)" }} />
 
       {/* ── White content ── */}
       <div style={{ background: BG, padding: "0 24px 80px" }}>
@@ -578,24 +612,35 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             ["01", "발볼·발등·아치 자동 분석", "줄자 없이 발 사진 3장으로 측정"],
             ["02", "1,120개 실제 제품 매칭",   "다나와 실시간 최저가 기준"],
             ["03", "3가지 추천 + 이유 설명",   "핏·스타일·절충안으로 비교"],
-          ].map(([n, title, desc]) => (
-            <div key={n} style={{ display: "flex", gap: 16, padding: "20px 0", borderBottom: `1px solid ${LINE}`, alignItems: "flex-start" }}>
-              <span className="ff-m" style={{ fontSize: 13, fontWeight: 600, color: G, minWidth: 28, paddingTop: 2 }}>{n}</span>
-              <div>
-                <p style={{ fontSize: 15, fontWeight: 600, color: INK, margin: "0 0 2px" }}>{title}</p>
-                <p style={{ fontSize: 13, color: SUB, margin: 0 }}>{desc}</p>
+          ].map(([n, title, desc], i) => (
+            <Reveal key={n} delay={i * 90}>
+              <div style={{ display: "flex", gap: 16, padding: "20px 0", borderBottom: `1px solid ${LINE}`, alignItems: "flex-start" }}>
+                <span className="ff-m" style={{ fontSize: 13, fontWeight: 600, color: G, minWidth: 28, paddingTop: 2 }}>{n}</span>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: INK, margin: "0 0 2px" }}>{title}</p>
+                  <p style={{ fontSize: 13, color: SUB, margin: 0 }}>{desc}</p>
+                </div>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
 
         {/* Reviews section — cycling */}
         <div style={{ marginTop: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Stars n={5} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: INK }}>4.9</span>
+            <span style={{ fontSize: 12, color: SUB }}>실사용자 후기</span>
+          </div>
           <p className="ff-m" style={{ fontSize: 11, color: HINT, letterSpacing: 0.5, marginBottom: 16 }}>USER REVIEWS</p>
 
           {/* Cycling review */}
           <div style={{ opacity: reviewVisible ? 1 : 0, transform: reviewVisible ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.3s ease, transform 0.3s ease", marginBottom: 16 }}>
             <div style={{ background: BG2, borderRadius: 14, padding: "18px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <Stars n={rev.rating} />
+                <span style={{ fontSize: 10, fontWeight: 600, color: G, background: GL, padding: "3px 8px", borderRadius: 100 }}>✓ 실구매 인증</span>
+              </div>
               <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 12px", fontStyle: "italic" }}>
                 "{rev.text}"
               </p>
@@ -613,18 +658,24 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             ))}
           </div>
 
-          {/* Static mini reviews */}
+          {/* Static mini reviews — scroll reveal */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {REVIEWS.slice(1).map((r, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderTop: `1px solid ${LINE}` }}>
-                <div style={{ width: 32, height: 32, borderRadius: 16, background: GL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 13 }}>🦶</span>
+              <Reveal key={i} delay={i * 70}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderTop: `1px solid ${LINE}` }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 16, background: GL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ fontSize: 13 }}>🦶</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <Stars n={r.rating} />
+                      <span style={{ fontSize: 9, fontWeight: 600, color: G }}>✓ 인증</span>
+                    </div>
+                    <p style={{ fontSize: 13, color: INK, lineHeight: 1.5, margin: "0 0 4px" }}>"{r.text.slice(0, 45)}..."</p>
+                    <span style={{ fontSize: 11, color: SUB }}>{r.info}</span>
+                  </div>
                 </div>
-                <div>
-                  <p style={{ fontSize: 13, color: INK, lineHeight: 1.5, margin: "0 0 4px" }}>"{r.text.slice(0, 45)}..."</p>
-                  <span style={{ fontSize: 11, color: SUB }}>{r.info}</span>
-                </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -635,7 +686,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
 
 // ── Survey data ──────────────────────────────────────────────────
 const FRONT_CL: ChecklistItem[] = [
-  { ok: true,  text: "A4 위에 맨발 · 위에서 수직으로" },
+  { ok: true,  text: "맨발로, 위에서 수직으로 촬영" },
   { ok: true,  text: "발가락~뒤꿈치 전체가 보이게" },
   { ok: false, text: "양말 착용 · 비스듬한 각도는 피해주세요" },
 ];
