@@ -456,71 +456,95 @@ function ResultCard({ result, fp }: { result: ResultItem; fp: FinalProfile }) {
 }
 
 // ── Intro screen (animated hero) ─────────────────────────────────
+const NEON = "#00FFAA";
+
 const HERO_STATES = [
   { cards: [{ k:"발볼", v:"넓음" }, { k:"아치", v:"보통" }, { k:"뒤꿈치", v:"보통" }], score: "94", label: "Perfect Match", shoe: "미즈노 알파3 엘리트 AS", price: "89,900원", brand: "MIZUNO" },
   { cards: [{ k:"발볼", v:"좁음" }, { k:"아치", v:"높음" }, { k:"뒤꿈치", v:"좁음" }], score: "97", label: "Best Match", shoe: "나이키 줌 머큐리얼 베이퍼 16", price: "229,000원", brand: "NIKE" },
   { cards: [{ k:"발볼", v:"보통" }, { k:"아치", v:"낮음" }, { k:"뒤꿈치", v:"보통" }], score: "91", label: "Great Match", shoe: "아디다스 코파 퓨어.1 AG", price: "159,000원", brand: "ADIDAS" },
 ];
 
+const REVIEWS = [
+  { text: "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요.", info: "27세 · 주 2회 풋살", shoe: "미즈노 알파3 엘리트 AS" },
+  { text: "머큐리얼 원래 꽉 낀다 했는데 한 사이즈 크게 사라고 알려줘서 딱 맞게 샀습니다.", info: "32세 · 학교 운동장", shoe: "나이키 머큐리얼 베이퍼 16" },
+  { text: "발 사진 찍는 거 처음엔 어색했는데 결과가 생각보다 훨씬 정확해요. 아치 분석이 특히 맞았음.", info: "19세 · 주 3회 풋살", shoe: "아디다스 코파 퓨어 AG" },
+  { text: "AG/FG 구분도 해줘서 좋았어요. 천연잔디 쓰는데 FG 추천해줘서 부상 걱정 없이 씀.", info: "24세 · 천연잔디 주 1회", shoe: "미즈노 모렐리아 네오 4" },
+];
+
 function IntroScreen({ onStart }: { onStart: () => void }) {
   const [heroIdx, setHeroIdx] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [logoKo, setLogoKo] = useState(false);
+  const [reviewIdx, setReviewIdx] = useState(0);
+  const [reviewVisible, setReviewVisible] = useState(true);
 
+  // Hero card cycling
   useEffect(() => {
     const id = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
-        setHeroIdx(i => (i + 1) % HERO_STATES.length);
-        setVisible(true);
-      }, 350);
-    }, 3000);
+      setTimeout(() => { setHeroIdx(i => (i + 1) % HERO_STATES.length); setVisible(true); }, 350);
+    }, 3200);
+    return () => clearInterval(id);
+  }, []);
+
+  // Logo EN/KR alternating
+  useEffect(() => {
+    const id = setInterval(() => setLogoKo(v => !v), 2800);
+    return () => clearInterval(id);
+  }, []);
+
+  // Review cycling
+  useEffect(() => {
+    const id = setInterval(() => {
+      setReviewVisible(false);
+      setTimeout(() => { setReviewIdx(i => (i + 1) % REVIEWS.length); setReviewVisible(true); }, 300);
+    }, 4000);
     return () => clearInterval(id);
   }, []);
 
   const h = HERO_STATES[heroIdx];
+  const rev = REVIEWS[reviewIdx];
 
   return (
     <div style={{ minHeight: "100vh", background: "#111111" }}>
-      {/* Dark hero */}
-      <div style={{ background: "#111111", padding: "0 24px 56px" }}>
-        {/* Logo */}
+      {/* ── Dark hero ── */}
+      <div style={{ background: "#111111", padding: "0 24px 48px" }}>
+
+        {/* Logo — alternates EN/KR */}
         <div style={{ display: "flex", alignItems: "center", padding: "22px 0 36px" }}>
-          <span className="ff-h" style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>FootFit</span>
-          <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: 3, background: G, display: "inline-block" }} />
+          <span className="ff-h" style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", transition: "opacity 0.4s", opacity: 1 }}>
+            {logoKo ? "풋핏" : "FootFit"}
+          </span>
+          <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: 3, background: NEON, display: "inline-block" }} />
         </div>
 
-        {/* Animated analysis cards */}
-        <div style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(-8px)", transition: "opacity 0.35s ease, transform 0.35s ease", marginBottom: 24 }}>
-          {/* Metric cards */}
+        {/* Animated analysis preview */}
+        <div style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(-6px)", transition: "opacity 0.3s ease, transform 0.3s ease", marginBottom: 24 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             {h.cards.map(({ k, v }) => (
-              <div key={k} style={{ flex: 1, background: "#1e1e1e", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 6px", letterSpacing: 0.6 }}>{k}</p>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0, letterSpacing: "-0.01em" }}>{v}</p>
+              <div key={k} style={{ flex: 1, background: "#1c1c1c", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 6px", letterSpacing: 0.6 }}>{k}</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0 }}>{v}</p>
               </div>
             ))}
           </div>
 
-          {/* Product card */}
-          <div style={{ background: "#1a1a1a", borderRadius: 14, padding: "16px 18px", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ background: "#181818", borderRadius: 14, padding: "16px 18px", border: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div>
-                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", letterSpacing: 0.6 }}>{h.brand}</p>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: "0 0 2px", lineHeight: 1.3 }}>{h.shoe}</p>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>{h.price}</p>
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", letterSpacing: 0.6 }}>{h.brand}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: "0 0 2px", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.shoe}</p>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0 }}>{h.price}</p>
               </div>
-              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                <p className="ff-h" style={{ fontSize: 36, fontWeight: 800, color: "#00FFAA", margin: 0, lineHeight: 1 }}>{h.score}<span style={{ fontSize: 18 }}>%</span></p>
-                <p className="ff-m" style={{ fontSize: 9, color: "#00FFAA", margin: "2px 0 0", letterSpacing: 0.5, opacity: 0.7 }}>{h.label}</p>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <p className="ff-h" style={{ fontSize: 38, fontWeight: 800, color: NEON, margin: 0, lineHeight: 1 }}>{h.score}<span style={{ fontSize: 18 }}>%</span></p>
+                <p className="ff-m" style={{ fontSize: 9, color: NEON, margin: "2px 0 0", letterSpacing: 0.4, opacity: 0.65 }}>{h.label}</p>
               </div>
             </div>
-            {/* Mini score bars */}
             <div style={{ display: "flex", gap: 4 }}>
-              {[parseInt(h.score), parseInt(h.score) - 3, parseInt(h.score) - 8, parseInt(h.score) - 1].map((v, i) => (
-                <div key={i} style={{ flex: 1 }}>
-                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${v}%`, background: v >= 90 ? "#00FFAA" : v >= 70 ? G : "#555", borderRadius: 2 }} />
-                  </div>
+              {[parseInt(h.score), parseInt(h.score)-3, parseInt(h.score)-7, parseInt(h.score)-1].map((v, i) => (
+                <div key={i} style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${v}%`, background: v >= 90 ? NEON : G, borderRadius: 2, transition: "width 0.6s ease" }} />
                 </div>
               ))}
             </div>
@@ -528,30 +552,34 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
         </div>
 
         {/* Headline */}
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: "0 0 12px", lineHeight: 1.3, letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: "0 0 10px", lineHeight: 1.3, letterSpacing: "-0.02em" }}>
           내 발에 맞는 축구화를<br />찾아드립니다.
         </h1>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", margin: "0 0 28px", lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.38)", margin: "0 0 28px", lineHeight: 1.6 }}>
           발 사진 3장 · AI 분석 · 실시간 최저가
         </p>
 
-        {/* CTA in hero */}
+        {/* CTA — neon color */}
         <button className="ff-btn" onClick={onStart}
-          style={{ width: "100%", background: G, color: "#fff", border: "none", height: 56, borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em" }}>
+          style={{ width: "100%", background: NEON, color: "#0a0a0a", border: "none", height: 56, borderRadius: 14, fontSize: 16, fontWeight: 800, cursor: "pointer", letterSpacing: "-0.01em" }}>
           발 분석 시작하기 →
         </button>
-        <p className="ff-m" style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "12px 0 0", letterSpacing: 0.4 }}>평균 3분 · 무료</p>
       </div>
 
-      {/* White sheet slides up — method 2 */}
-      <div style={{ background: BG, borderRadius: "24px 24px 0 0", marginTop: -20, position: "relative", padding: "32px 24px 80px" }}>
-        <div style={{ borderBottom: `1px solid ${LINE}` }}>
+      {/* ── Gradient bridge dark→white ── */}
+      <div style={{ height: 72, background: "linear-gradient(to bottom, #111111 0%, #ffffff 100%)" }} />
+
+      {/* ── White content ── */}
+      <div style={{ background: BG, padding: "0 24px 80px" }}>
+
+        {/* Feature list */}
+        <div style={{ borderTop: `1px solid ${LINE}` }}>
           {[
             ["01", "발볼·발등·아치 자동 분석", "줄자 없이 발 사진 3장으로 측정"],
-            ["02", "1,120개 실제 제품 매칭", "다나와 실시간 최저가 기준"],
-            ["03", "3가지 추천 + 이유 설명", "핏·스타일·절충안으로 비교"],
+            ["02", "1,120개 실제 제품 매칭",   "다나와 실시간 최저가 기준"],
+            ["03", "3가지 추천 + 이유 설명",   "핏·스타일·절충안으로 비교"],
           ].map(([n, title, desc]) => (
-            <div key={n} style={{ display: "flex", gap: 16, padding: "20px 0", borderTop: `1px solid ${LINE}`, alignItems: "flex-start" }}>
+            <div key={n} style={{ display: "flex", gap: 16, padding: "20px 0", borderBottom: `1px solid ${LINE}`, alignItems: "flex-start" }}>
               <span className="ff-m" style={{ fontSize: 13, fontWeight: 600, color: G, minWidth: 28, paddingTop: 2 }}>{n}</span>
               <div>
                 <p style={{ fontSize: 15, fontWeight: 600, color: INK, margin: "0 0 2px" }}>{title}</p>
@@ -561,11 +589,44 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 28 }}>
-          <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 8px", fontStyle: "italic" }}>
-            "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
-          </p>
-          <p className="ff-m" style={{ fontSize: 11, color: HINT, margin: 0, letterSpacing: 0.5 }}>— 27세 · 주 2회 풋살</p>
+        {/* Reviews section — cycling */}
+        <div style={{ marginTop: 32 }}>
+          <p className="ff-m" style={{ fontSize: 11, color: HINT, letterSpacing: 0.5, marginBottom: 16 }}>USER REVIEWS</p>
+
+          {/* Cycling review */}
+          <div style={{ opacity: reviewVisible ? 1 : 0, transform: reviewVisible ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.3s ease, transform 0.3s ease", marginBottom: 16 }}>
+            <div style={{ background: BG2, borderRadius: 14, padding: "18px 20px" }}>
+              <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 12px", fontStyle: "italic" }}>
+                "{rev.text}"
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: SUB }}>{rev.info}</span>
+                <span style={{ fontSize: 11, background: GL, color: G, padding: "3px 8px", borderRadius: 100, fontWeight: 600 }}>{rev.shoe.split(" ").slice(0, 2).join(" ")}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Review dots */}
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 24 }}>
+            {REVIEWS.map((_, i) => (
+              <div key={i} style={{ width: i === reviewIdx ? 16 : 6, height: 6, borderRadius: 3, background: i === reviewIdx ? G : LINE, transition: "all 0.3s ease" }} />
+            ))}
+          </div>
+
+          {/* Static mini reviews */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {REVIEWS.slice(1).map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderTop: `1px solid ${LINE}` }}>
+                <div style={{ width: 32, height: 32, borderRadius: 16, background: GL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 13 }}>🦶</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, color: INK, lineHeight: 1.5, margin: "0 0 4px" }}>"{r.text.slice(0, 45)}..."</p>
+                  <span style={{ fontSize: 11, color: SUB }}>{r.info}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
