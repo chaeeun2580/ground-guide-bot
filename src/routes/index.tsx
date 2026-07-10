@@ -594,84 +594,56 @@ function App() {
     <div style={{ minHeight: "100vh", background: "#FAF9F5", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: "#1A1A18" }}>
       <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         {step === "intro" && (
-          <div style={{ fontFamily: "'Inter', sans-serif", background: "#F3ECE0", minHeight: "100vh", paddingBottom: 100, margin: "-20px", borderRadius: 16 }}>
+          <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#FAF9F5", minHeight: "100vh", paddingBottom: 100, margin: "-20px", borderRadius: 16 }}>
             <style>{`
-              .spec-num { font-family: 'IBM Plex Mono', monospace; font-size: 38px; font-weight: 700; line-height: 1; color: transparent; -webkit-text-stroke: 1.4px #A9683C; min-width: 44px; }
-              .eyebrow { font-family: 'IBM Plex Mono', monospace; }
-              .headline { font-family: 'Big Shoulders Display', sans-serif; }
-              .mono { font-family: 'IBM Plex Mono', monospace; }
+              .lp-headline { font-family: 'Big Shoulders Display', sans-serif; }
+              .lp-mono { font-family: 'IBM Plex Mono', monospace; }
+              .lp-num { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; line-height: 1; color: transparent; -webkit-text-stroke: 1.5px ${GREEN}; min-width: 42px; flex-shrink: 0; }
             `}</style>
 
-            {/* 태그 고리 */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: 28 }}>
-              <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid #948A7A", background: "#F3ECE0" }} />
-              <div style={{ width: 1, height: 20, background: "#948A7A" }} />
-            </div>
-
             {/* 히어로 */}
-            <div style={{ padding: "0 28px 32px", textAlign: "center" }}>
-              <span className="eyebrow" style={{ display: "inline-block", fontSize: 11, letterSpacing: "0.18em", color: "#7C4C2A", border: "1px solid #A9683C", padding: "5px 12px", borderRadius: 2, margin: "16px 0 20px" }}>
-                FOOT SPEC ANALYSIS
-              </span>
-              <h1 className="headline" style={{ fontSize: "clamp(34px, 8vw, 48px)", lineHeight: 1.08, fontWeight: 800, color: "#17130F", letterSpacing: "0.005em", margin: "0 0 18px 0" }}>
+            <div style={{ padding: "40px 24px 32px" }}>
+              <h1 className="lp-headline" style={{ fontSize: "clamp(36px, 9vw, 52px)", lineHeight: 1.05, fontWeight: 800, color: "#1A1A18", margin: "0 0 16px 0", letterSpacing: "-0.01em" }}>
                 축구화 사기 전에<br />발부터 재보세요
               </h1>
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: "#4A4137", maxWidth: 340, margin: "0 auto" }}>
-                발 사진 <strong style={{ color: "#7C4C2A", fontWeight: 600 }}>3장</strong>이면 발볼·발등·아치를 읽고<br />1,120개 제품 중 딱 맞는 걸 골라드려요.
+              <p style={{ fontSize: 15, lineHeight: 1.65, color: "#6B6A65", margin: 0 }}>
+                발 사진 <strong style={{ color: GREEN, fontWeight: 600 }}>3장</strong>으로 발볼·발등·아치를 읽고<br />1,120개 제품 중 딱 맞는 걸 골라드려요.
               </p>
             </div>
 
-            {/* 발 도해 */}
-            <div style={{ padding: "0 28px 8px" }}>
-              <div style={{ border: "1px solid #948A7A", borderRadius: 4, padding: "20px 12px 24px", background: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent)", position: "relative" }}>
-                <span className="mono" style={{ position: "absolute", top: 8, left: 12, fontSize: 9, letterSpacing: "0.1em", color: "#948A7A" }}>FOOT SPEC / 발 형태 분석</span>
-                <svg viewBox="0 0 300 420" style={{ display: "block", margin: "18px auto 0", width: 160, height: "auto", overflow: "visible" }}>
-                  <path fill="none" stroke="#17130F" strokeWidth="2" d="M150,18 C192,18 212,58 206,112 C201,158 222,196 227,250 C233,312 212,372 170,398 C138,418 88,418 62,392 C36,366 32,320 44,268 C55,220 39,168 50,116 C60,66 102,18 150,18 Z" />
-                  <line stroke="#A9683C" strokeWidth="1.4" strokeDasharray="4 4" x1="20" y1="110" x2="280" y2="110" />
-                  <line stroke="#A9683C" strokeWidth="1.4" strokeDasharray="4 4" x1="20" y1="230" x2="280" y2="230" />
-                  <line stroke="#A9683C" strokeWidth="1.4" strokeDasharray="4 4" x1="20" y1="340" x2="280" y2="340" />
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="10" fill="#241D17" x="20" y="102">발볼 WIDTH</text>
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="600" fill="#7C4C2A" x="210" y="102">측정중</text>
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="10" fill="#241D17" x="20" y="222">발등 HEIGHT</text>
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="600" fill="#7C4C2A" x="210" y="222">측정중</text>
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="10" fill="#241D17" x="20" y="332">아치 TYPE</text>
-                  <text fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="600" fill="#7C4C2A" x="210" y="332">측정중</text>
-                </svg>
-              </div>
-            </div>
-
             {/* 스펙 리스트 */}
-            <div style={{ padding: "0 28px", marginTop: 36, borderTop: "1px dashed #948A7A" }}>
+            <div style={{ padding: "0 24px", borderTop: `1px solid #E5E2D9` }}>
               {[
-                { n: "01", title: "발볼·발등·아치 자동 분석", desc: "발 사진 3장으로 측정 — 줄자 없이도 정확하게" },
+                { n: "01", title: "발볼·발등·아치 자동 분석", desc: "줄자 없이 발 사진 3장으로 측정해요" },
                 { n: "02", title: "1,120개 실제 제품 매칭", desc: "다나와 실시간 최저가 기준으로 비교" },
-                { n: "03", title: "3가지 추천 + 이유 설명", desc: "핏·스타일·절충안, 왜 맞는지까지 알려드려요" },
+                { n: "03", title: "3가지 추천 + 이유 설명", desc: "핏·스타일·절충안, 왜 맞는지까지 알려줘요" },
               ].map((s, i) => (
-                <div key={i} style={{ display: "flex", gap: 18, alignItems: "flex-start", padding: "22px 0", borderBottom: i < 2 ? "1px dashed #948A7A" : "none" }}>
-                  <span className="spec-num">{s.n}</span>
+                <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", padding: "20px 0", borderBottom: "1px solid #E5E2D9" }}>
+                  <span className="lp-num">{s.n}</span>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: "#17130F" }}>{s.title}</h3>
-                    <p style={{ fontSize: 13, color: "#6B6053", lineHeight: 1.5 }}>{s.desc}</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 3, color: "#1A1A18" }}>{s.title}</h3>
+                    <p style={{ fontSize: 13, color: "#9B9A95", lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* 후기 */}
-            <div style={{ padding: "0 28px", marginTop: 36 }}>
-              <div style={{ borderTop: "1px dashed #948A7A", paddingTop: 24 }}>
-                <span className="headline" style={{ fontSize: 54, color: "#A9683C", opacity: 0.55, lineHeight: 0.5, display: "block", marginBottom: 6 }}>"</span>
-                <p style={{ fontSize: 15, lineHeight: 1.6, fontStyle: "italic", color: "#241D17" }}>발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요.</p>
-                <span className="mono" style={{ display: "block", marginTop: 12, fontSize: 11, letterSpacing: "0.05em", textTransform: "uppercase", color: "#948A7A" }}>27세 · 주 2회 풋살</span>
+            <div style={{ margin: "24px 24px 0" }}>
+              <div style={{ background: "#fff", border: "1px solid #E5E2D9", borderRadius: 12, padding: "18px 20px" }}>
+                <p style={{ fontSize: 14, lineHeight: 1.65, color: "#3A3A36", margin: "0 0 10px 0" }}>
+                  "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
+                </p>
+                <span className="lp-mono" style={{ fontSize: 11, color: "#9B9A95", letterSpacing: "0.04em" }}>27세 · 주 2회 풋살</span>
               </div>
             </div>
 
             {/* 하단 고정 CTA */}
-            <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "#17130F", borderTop: "1px solid #A9683C", padding: "14px 20px 18px", textAlign: "center", zIndex: 40 }}>
-              <p className="mono" style={{ fontSize: 10, color: "#948A7A", letterSpacing: "0.08em", marginBottom: 10 }}>평균 3분 · 무료</p>
+            <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "#1A1A18", padding: "14px 20px 24px", textAlign: "center", zIndex: 40 }}>
+              <p className="lp-mono" style={{ fontSize: 10, color: "#6B6A65", letterSpacing: "0.1em", marginBottom: 10 }}>평균 3분 · 무료</p>
               <button
                 onClick={() => setStep("photo-front")}
-                style={{ width: "100%", maxWidth: 480, background: "#A9683C", color: "#F3ECE0", border: "none", borderRadius: 3, padding: "15px 0", fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: "0.01em", cursor: "pointer" }}
+                style={{ width: "100%", maxWidth: 480, background: GREEN, color: "#fff", border: "none", borderRadius: 8, padding: "16px 0", fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer" }}
               >
                 내 발 분석하기 →
               </button>
