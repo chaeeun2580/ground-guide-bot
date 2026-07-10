@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useRef } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { analyzeFoot, type FootAnalysis } from "@/lib/foot-analysis.functions";
 import { PRODUCTS, type Product } from "@/lib/products-data";
 import guideFront from "@/assets/guide-front.png";
@@ -302,7 +301,80 @@ function NumberSurveyQuestion({
   );
 }
 
-function AnalyzingStep({ progress, message }: { progress: number; message: string }) {
+const SCAN_STEPS = [
+  "발볼 너비 확인 중...",
+  "발가락 형태 분석 중...",
+  "아치 곡선 확인 중...",
+  "발 특징 종합 중...",
+];
+
+function AnalyzingStep({ progress, message, photoSrc }: { progress: number; message: string; photoSrc?: string | null }) {
+  const [scanStep, setScanStep] = useState(0);
+
+  useEffect(() => {
+    if (!photoSrc) return;
+    const interval = setInterval(() => {
+      setScanStep((s) => (s + 1) % SCAN_STEPS.length);
+    }, 900);
+    return () => clearInterval(interval);
+  }, [photoSrc]);
+
+  if (photoSrc) {
+    return (
+      <div>
+        <style>{`
+          @keyframes scanDown {
+            0%   { top: 0%; opacity: 1; }
+            48%  { top: 92%; opacity: 1; }
+            50%  { top: 92%; opacity: 0; }
+            52%  { top: 0%; opacity: 0; }
+            54%  { top: 0%; opacity: 1; }
+            100% { top: 92%; opacity: 1; }
+          }
+        `}</style>
+        <div style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", marginBottom: 16, background: "#000" }}>
+          <img src={photoSrc} alt="발 분석 중" style={{ width: "100%", display: "block", maxHeight: 300, objectFit: "cover", opacity: 0.85 }} />
+          {/* 스캔 라인 */}
+          <div style={{
+            position: "absolute", left: 0, right: 0, height: 3,
+            background: `linear-gradient(90deg, transparent 0%, ${GREEN} 20%, #00ffcc 50%, ${GREEN} 80%, transparent 100%)`,
+            boxShadow: `0 0 10px 2px ${GREEN}, 0 0 24px 4px rgba(15,110,86,0.5)`,
+            animation: "scanDown 1.8s ease-in-out infinite",
+            top: 0,
+          }} />
+          {/* 코너 마커 */}
+          {[{t:8,l:8},{t:8,r:8},{b:8,l:8},{b:8,r:8}].map((pos, i) => (
+            <div key={i} style={{
+              position: "absolute", width: 16, height: 16,
+              borderTop: i < 2 ? `2px solid ${GREEN}` : "none",
+              borderBottom: i >= 2 ? `2px solid ${GREEN}` : "none",
+              borderLeft: i % 2 === 0 ? `2px solid ${GREEN}` : "none",
+              borderRight: i % 2 === 1 ? `2px solid ${GREEN}` : "none",
+              top: pos.t, bottom: (pos as any).b, left: (pos as any).l, right: (pos as any).r,
+            }} />
+          ))}
+          {/* 분석 중 텍스트 오버레이 */}
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+            padding: "20px 12px 12px",
+          }}>
+            <p style={{ color: "#00ffcc", fontSize: 12, fontWeight: 700, margin: 0, letterSpacing: 0.5 }}>
+              ▶ {SCAN_STEPS[scanStep]}
+            </p>
+          </div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px 0", color: "#1A1A18" }}>{message}</h2>
+          <div style={{ height: 4, borderRadius: 2, background: "#E5E2D9", overflow: "hidden" }}>
+            <div style={{ height: "100%", background: GREEN, width: `${progress}%`, transition: "width 0.4s ease" }} />
+          </div>
+          <p style={{ fontSize: 11, color: "#9B9A95", margin: "6px 0 0 0" }}>{progress}%</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -455,8 +527,6 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [analyzeMsg, setAnalyzeMsg] = useState("발 사진을 보내고 있어요");
 
-  const callAnalyze = useServerFn(analyzeFoot);
-
   const handleSurveyAnswer = (key: keyof Profile, value: string | number) => {
     const updated = { ...profile, [key]: value } as Profile;
     setProfile(updated);
@@ -470,20 +540,21 @@ function App() {
   const runAnalysis = async (finalProfile: Profile) => {
     setStep("analyzing");
     setProgress(10);
-    setAnalyzeMsg("AI에게 발 사진 전송 중");
+    setAnalyzeMsg("발볼 너비 확인 중...");
 
     let ai: FootAnalysis | null = null;
     try {
       if (photos.front) {
-        setProgress(35);
-        setAnalyzeMsg("AI가 발 모양을 보고 있어요");
-        ai = await callAnalyze({
-          data: {
-            frontImage: photos.front,
-            sideImage: photos.side,
-            heelImage: photos.heel,
-          },
+        setProgress(30);
+        setAnalyzeMsg("발가락 형태 분석 중...");
+        ai = await analyzeFoot({
+          frontImage: photos.front,
+          sideImage: photos.side,
+          heelImage: photos.heel,
         });
+        setProgress(65);
+        setAnalyzeMsg("아치 곡선 확인 중...");
+        await new Promise((r) => setTimeout(r, 600));
       }
     } catch (err) {
       console.error("analyze failed", err);
@@ -609,7 +680,7 @@ function App() {
           )
         )}
 
-        {step === "analyzing" && <AnalyzingStep progress={progress} message={analyzeMsg} />}
+        {step === "analyzing" && <AnalyzingStep progress={progress} message={analyzeMsg} photoSrc={photos.front} />}
 
         {step === "results" && results && (
           <div>
