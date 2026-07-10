@@ -135,11 +135,14 @@ const CSS = `
   }
   @keyframes spin { to { transform:rotate(360deg); } }
   @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes heroFade { 0%,100%{opacity:1;transform:translateY(0)} 45%{opacity:0;transform:translateY(-6px)} 55%{opacity:0;transform:translateY(6px)} }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
   .ff-h { font-family:'Big Shoulders Display',sans-serif; }
   .ff-m { font-family:'IBM Plex Mono',monospace; }
   .ff-btn:active { transform:scale(0.98); }
   .ff-opt { transition: border-color 0.15s, background 0.15s; }
   .ff-opt:active { transform:scale(0.99); }
+  .hero-val { animation: heroFade 3s ease-in-out infinite; }
 `;
 
 // ── Shared ───────────────────────────────────────────────────────
@@ -225,63 +228,75 @@ function FootScanStep({ photos, onComplete }: {
 }) {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [apiDone, setApiDone] = useState(false);
+  const [minTimeDone, setMinTimeDone] = useState(false);
   const aiRef = useRef<FootAnalysis | null>(null);
   const available = SCAN_INFO.filter(p => photos[p.key] !== null);
 
+  // 사진별 1.8s 순환 — 최소 1회전 보장
   useEffect(() => {
-    if (available.length <= 1) return;
-    const id = setInterval(() => setPhotoIdx(i => (i + 1) % available.length), 1600);
-    return () => clearInterval(id);
+    const PER_PHOTO = 1800;
+    const id = setInterval(() => setPhotoIdx(i => (i + 1) % available.length), PER_PHOTO);
+    // 최소 시간: 사진 수 × PER_PHOTO + 여유 0.5s
+    const minId = setTimeout(() => setMinTimeDone(true), available.length * PER_PHOTO + 500);
+    return () => { clearInterval(id); clearTimeout(minId); };
   }, [available.length]);
 
+  // AI 분석 실행
   useEffect(() => {
     (async () => {
       try {
         if (photos.front) {
           aiRef.current = await analyzeFoot({ frontImage: photos.front, sideImage: photos.side, heelImage: photos.heel });
         }
-      } catch { /* fallback to null */ }
+      } catch { /* fallback */ }
       setApiDone(true);
     })();
   }, []);
 
+  // API 완료 AND 최소 시간 모두 충족 시 다음 단계
   useEffect(() => {
-    if (!apiDone) return;
-    const id = setTimeout(() => onComplete(aiRef.current), 700);
+    if (!apiDone || !minTimeDone) return;
+    const id = setTimeout(() => onComplete(aiRef.current), 400);
     return () => clearTimeout(id);
-  }, [apiDone]);
+  }, [apiDone, minTimeDone]);
 
   const cur = available[photoIdx % available.length];
   const src = cur ? photos[cur.key] : null;
+  const progressPct = Math.round(((photoIdx + 1) / available.length) * 70 + (apiDone ? 30 : 0));
 
   return (
     <div style={{ padding: 24 }}>
-      {/* Photo dots indicator */}
+      {/* 단계 표시 */}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
-        {available.map((_, i) => (
-          <div key={i} style={{ width: 8, height: 8, borderRadius: 4, background: i === photoIdx % available.length ? G : LINE, transition: "background 0.3s" }} />
+        {available.map((info, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 4, background: i <= photoIdx % available.length ? G : LINE, transition: "background 0.4s" }} />
+            <span className="ff-m" style={{ fontSize: 9, color: i <= photoIdx % available.length ? G : HINT, letterSpacing: 0.3 }}>
+              {info.key === "front" ? "정면" : info.key === "side" ? "측면" : "뒤꿈치"}
+            </span>
+          </div>
         ))}
       </div>
 
       {src && (
         <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 24 }}>
-          <img src={src} alt="발 분석 중" style={{ width: "100%", display: "block", maxHeight: 320, objectFit: "cover" }} />
+          <img key={src} src={src} alt="발 분석 중" style={{ width: "100%", display: "block", maxHeight: 320, objectFit: "cover", animation: "fadeIn 0.4s ease" }} />
           <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent 0%,${G} 20%,#00FFCC 50%,${G} 80%,transparent 100%)`, boxShadow: `0 0 12px 2px ${G}`, animation: "scanDown 1.8s ease-in-out infinite", top: 0 }} />
-          {/* corner marks */}
           {[[true,true,false,false],[true,false,false,true],[false,true,true,false],[false,false,true,true]].map(([bt,bl,bb,br],i) => (
             <div key={i} style={{ position:"absolute", width:18, height:18, top:bt||!bb?8:undefined, bottom:bb?8:undefined, left:bl||!br?8:undefined, right:br?8:undefined, borderTop:bt?`2px solid ${G}`:"none", borderBottom:bb?`2px solid ${G}`:"none", borderLeft:bl?`2px solid ${G}`:"none", borderRight:br?`2px solid ${G}`:"none" }} />
           ))}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)", padding: "32px 16px 14px" }}>
-            <p className="ff-m" style={{ color: "#00FFCC", fontSize: 12, margin: 0 }}>▶ {cur?.step}</p>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)", padding: "32px 16px 14px" }}>
+            <p className="ff-m" style={{ color: "#00FFCC", fontSize: 12, margin: 0, animation: "pulse 1.2s ease-in-out infinite" }}>▶ {cur?.step}</p>
           </div>
         </div>
       )}
 
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: INK, margin: "0 0 6px" }}>발 사진을 분석하고 있어요</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: INK, margin: "0 0 4px" }}>발 사진 {available.length}장을 분석하고 있어요</h2>
       <p style={{ fontSize: 13, color: SUB, margin: "0 0 16px" }}>{cur?.label}</p>
       <div style={{ height: 4, borderRadius: 2, background: LINE, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: apiDone ? "100%" : "60%", background: G, borderRadius: 2, transition: "width 3s ease" }} />
+        <div style={{ height: "100%", width: `${progressPct}%`, background: G, borderRadius: 2, transition: "width 1.5s ease" }} />
       </div>
+      <p className="ff-m" style={{ fontSize: 11, color: HINT, margin: "6px 0 0", textAlign: "right" }}>{progressPct}%</p>
     </div>
   );
 }
@@ -440,6 +455,123 @@ function ResultCard({ result, fp }: { result: ResultItem; fp: FinalProfile }) {
   );
 }
 
+// ── Intro screen (animated hero) ─────────────────────────────────
+const HERO_STATES = [
+  { cards: [{ k:"발볼", v:"넓음" }, { k:"아치", v:"보통" }, { k:"뒤꿈치", v:"보통" }], score: "94", label: "Perfect Match", shoe: "미즈노 알파3 엘리트 AS", price: "89,900원", brand: "MIZUNO" },
+  { cards: [{ k:"발볼", v:"좁음" }, { k:"아치", v:"높음" }, { k:"뒤꿈치", v:"좁음" }], score: "97", label: "Best Match", shoe: "나이키 줌 머큐리얼 베이퍼 16", price: "229,000원", brand: "NIKE" },
+  { cards: [{ k:"발볼", v:"보통" }, { k:"아치", v:"낮음" }, { k:"뒤꿈치", v:"보통" }], score: "91", label: "Great Match", shoe: "아디다스 코파 퓨어.1 AG", price: "159,000원", brand: "ADIDAS" },
+];
+
+function IntroScreen({ onStart }: { onStart: () => void }) {
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setHeroIdx(i => (i + 1) % HERO_STATES.length);
+        setVisible(true);
+      }, 350);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  const h = HERO_STATES[heroIdx];
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#111111" }}>
+      {/* Dark hero */}
+      <div style={{ background: "#111111", padding: "0 24px 56px" }}>
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", padding: "22px 0 36px" }}>
+          <span className="ff-h" style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>FootFit</span>
+          <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: 3, background: G, display: "inline-block" }} />
+        </div>
+
+        {/* Animated analysis cards */}
+        <div style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(-8px)", transition: "opacity 0.35s ease, transform 0.35s ease", marginBottom: 24 }}>
+          {/* Metric cards */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            {h.cards.map(({ k, v }) => (
+              <div key={k} style={{ flex: 1, background: "#1e1e1e", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 6px", letterSpacing: 0.6 }}>{k}</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0, letterSpacing: "-0.01em" }}>{v}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Product card */}
+          <div style={{ background: "#1a1a1a", borderRadius: 14, padding: "16px 18px", border: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div>
+                <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", letterSpacing: 0.6 }}>{h.brand}</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: "0 0 2px", lineHeight: 1.3 }}>{h.shoe}</p>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>{h.price}</p>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                <p className="ff-h" style={{ fontSize: 36, fontWeight: 800, color: "#00FFAA", margin: 0, lineHeight: 1 }}>{h.score}<span style={{ fontSize: 18 }}>%</span></p>
+                <p className="ff-m" style={{ fontSize: 9, color: "#00FFAA", margin: "2px 0 0", letterSpacing: 0.5, opacity: 0.7 }}>{h.label}</p>
+              </div>
+            </div>
+            {/* Mini score bars */}
+            <div style={{ display: "flex", gap: 4 }}>
+              {[parseInt(h.score), parseInt(h.score) - 3, parseInt(h.score) - 8, parseInt(h.score) - 1].map((v, i) => (
+                <div key={i} style={{ flex: 1 }}>
+                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${v}%`, background: v >= 90 ? "#00FFAA" : v >= 70 ? G : "#555", borderRadius: 2 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Headline */}
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: "0 0 12px", lineHeight: 1.3, letterSpacing: "-0.02em" }}>
+          내 발에 맞는 축구화를<br />찾아드립니다.
+        </h1>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", margin: "0 0 28px", lineHeight: 1.6 }}>
+          발 사진 3장 · AI 분석 · 실시간 최저가
+        </p>
+
+        {/* CTA in hero */}
+        <button className="ff-btn" onClick={onStart}
+          style={{ width: "100%", background: G, color: "#fff", border: "none", height: 56, borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em" }}>
+          발 분석 시작하기 →
+        </button>
+        <p className="ff-m" style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "12px 0 0", letterSpacing: 0.4 }}>평균 3분 · 무료</p>
+      </div>
+
+      {/* White sheet slides up — method 2 */}
+      <div style={{ background: BG, borderRadius: "24px 24px 0 0", marginTop: -20, position: "relative", padding: "32px 24px 80px" }}>
+        <div style={{ borderBottom: `1px solid ${LINE}` }}>
+          {[
+            ["01", "발볼·발등·아치 자동 분석", "줄자 없이 발 사진 3장으로 측정"],
+            ["02", "1,120개 실제 제품 매칭", "다나와 실시간 최저가 기준"],
+            ["03", "3가지 추천 + 이유 설명", "핏·스타일·절충안으로 비교"],
+          ].map(([n, title, desc]) => (
+            <div key={n} style={{ display: "flex", gap: 16, padding: "20px 0", borderTop: `1px solid ${LINE}`, alignItems: "flex-start" }}>
+              <span className="ff-m" style={{ fontSize: 13, fontWeight: 600, color: G, minWidth: 28, paddingTop: 2 }}>{n}</span>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: INK, margin: "0 0 2px" }}>{title}</p>
+                <p style={{ fontSize: 13, color: SUB, margin: 0 }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 8px", fontStyle: "italic" }}>
+            "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
+          </p>
+          <p className="ff-m" style={{ fontSize: 11, color: HINT, margin: 0, letterSpacing: 0.5 }}>— 27세 · 주 2회 풋살</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Survey data ──────────────────────────────────────────────────
 const FRONT_CL: ChecklistItem[] = [
   { ok: true,  text: "A4 위에 맨발 · 위에서 수직으로" },
@@ -554,79 +686,7 @@ function App() {
       <div style={{ maxWidth: 430, margin: "0 auto", background: BG, minHeight: "100vh" }}>
 
         {/* ── INTRO ── */}
-        {step === "intro" && (
-          <div style={{ paddingBottom: 100 }}>
-            {/* Dark hero */}
-            <div style={{ background: INK, padding: "0 24px 40px" }}>
-              {/* Logo header */}
-              <div style={{ display: "flex", alignItems: "center", padding: "20px 0 32px" }}>
-                <span className="ff-h" style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>FootFit</span>
-                <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: 3, background: G, display: "inline-block", marginBottom: 2 }} />
-              </div>
-
-              {/* Sample analysis preview */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  {[["발볼", "넓음"], ["아치", "보통"], ["뒤꿈치", "보통"]].map(([k, v]) => (
-                    <div key={k} style={{ flex: 1, background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                      <p className="ff-m" style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 4px", letterSpacing: 0.5 }}>{k}</p>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", margin: 0 }}>{v}</p>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>추천 제품</span>
-                    <span className="ff-m" style={{ fontSize: 11, fontWeight: 600, color: "#00FFAA" }}>발 적합도 94%</span>
-                  </div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: "0 0 2px" }}>미즈노 알파3 엘리트 AS</p>
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0 }}>89,900원 · 다나와 최저가</p>
-                </div>
-              </div>
-
-              <h1 className="ff-h" style={{ fontSize: 46, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
-                축구화 사기 전에<br />발부터<br />재보세요.
-              </h1>
-            </div>
-
-            {/* Features */}
-            <div style={{ padding: "32px 24px 0" }}>
-              <p style={{ fontSize: 15, color: SUB, margin: "0 0 32px", lineHeight: 1.65 }}>
-                발 사진 <strong style={{ color: G, fontWeight: 600 }}>3장</strong>이면 발볼·발등·아치를 읽고 1,120개 제품 중 딱 맞는 걸 골라드려요.
-              </p>
-              <div style={{ borderTop: `1px solid ${LINE}` }}>
-                {[
-                  ["01", "발볼·발등·아치 자동 분석", "줄자 없이 발 사진 3장으로 측정"],
-                  ["02", "1,120개 실제 제품 매칭", "다나와 실시간 최저가 기준"],
-                  ["03", "3가지 추천 + 이유 설명", "핏·스타일·절충안으로 비교"],
-                ].map(([n, title, desc]) => (
-                  <div key={n} style={{ display: "flex", gap: 16, padding: "20px 0", borderBottom: `1px solid ${LINE}`, alignItems: "flex-start" }}>
-                    <span className="ff-m" style={{ fontSize: 13, fontWeight: 600, color: G, minWidth: 28, paddingTop: 2 }}>{n}</span>
-                    <div>
-                      <p style={{ fontSize: 15, fontWeight: 600, color: INK, margin: "0 0 2px" }}>{title}</p>
-                      <p style={{ fontSize: 13, color: SUB, margin: 0 }}>{desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ paddingTop: 28 }}>
-                <p style={{ fontSize: 15, color: INK, lineHeight: 1.65, margin: "0 0 8px", fontStyle: "italic" }}>
-                  "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
-                </p>
-                <p className="ff-m" style={{ fontSize: 11, color: HINT, margin: 0, letterSpacing: 0.5 }}>— 27세 · 주 2회 풋살</p>
-              </div>
-            </div>
-
-            {/* Sticky CTA */}
-            <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, padding: "16px 24px 28px", background: "rgba(255,255,255,0.96)", borderTop: `1px solid ${LINE}`, zIndex: 40, boxSizing: "border-box" }}>
-              <button className="ff-btn" onClick={() => setStep("photo-front")}
-                style={{ width: "100%", background: G, color: "#fff", border: "none", height: 54, borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-                내 발 분석하기 →
-              </button>
-              <p className="ff-m" style={{ textAlign: "center", fontSize: 11, color: HINT, margin: "10px 0 0", letterSpacing: 0.4 }}>평균 3분 · 무료</p>
-            </div>
-          </div>
-        )}
+        {step === "intro" && <IntroScreen onStart={() => setStep("photo-front")} />}
 
         {/* ── PHOTO STEPS ── */}
         {step === "photo-front" && (
