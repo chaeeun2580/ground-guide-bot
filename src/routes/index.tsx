@@ -594,23 +594,50 @@ function App() {
     <div style={{ minHeight: "100vh", background: "#FAF9F5", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: "#1A1A18" }}>
       <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         {step === "intro" && (
-          <div style={{ textAlign: "center", padding: "24px 4px" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0" }}>발 사진으로 축구화 찾기</h1>
-            <p style={{ fontSize: 14, color: "#6B6A65", margin: "0 0 6px 0", lineHeight: 1.6 }}>
-              AI 발 분석 + 전문 설문 8개로<br/>내 발에 딱 맞는 축구화를 찾아드려요
+          <div style={{ fontFamily: "Apple SD Gothic Neo, -apple-system, BlinkMacSystemFont, sans-serif", padding: "32px 24px 100px", minHeight: "100vh", boxSizing: "border-box" }}>
+            {/* 헤드라인 */}
+            <h1 style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.25, margin: "0 0 16px 0", color: "#1A1A18", wordBreak: "keep-all" }}>
+              25만 원짜리 축구화,<br />발이 아팠나요?
+            </h1>
+            <p style={{ fontSize: 16, color: "#6B6A65", margin: "0 0 32px 0", lineHeight: 1.6 }}>
+              발 사진 3장으로 내 발에 맞는 축구화를 바로 찾아드려요.
             </p>
-            <p style={{ fontSize: 12, color: "#9B9A95", margin: "0 0 20px 0" }}>실제 다나와 가격·리뷰 기반</p>
 
-            <div style={{ background: "#FFF4F4", border: "1px solid #F5D6D6", borderRadius: 12, padding: 12, marginBottom: 20, textAlign: "left" }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#B23636", margin: "0 0 8px 0" }}>❌ 이런 사진은 분석이 어려워요</p>
-              <img src={guideMistakes} alt="흔한 촬영 실수 예시" style={{ width: "100%", borderRadius: 8, display: "block" }} />
-              <p style={{ fontSize: 11, color: "#6B6A65", margin: "8px 0 0 0", lineHeight: 1.5 }}>각도 기울임 · 일부 잘림 · 너무 어두움 · 흔들림 · 필터 사용 · 양말 착용은 피해주세요.</p>
+            {/* 신뢰 요소 3가지 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
+              {[
+                { icon: "🦶", title: "발볼·발등·아치 자동 분석", sub: "발 사진 3장으로 측정" },
+                { icon: "💰", title: "1,120개 실제 제품 매칭", sub: "다나와 실시간 최저가 기준" },
+                { icon: "✅", title: "3가지 추천 + 이유 설명", sub: "핏·스타일·절충안으로 비교" },
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, background: "#F7F7F5", borderRadius: 12, padding: "14px 16px" }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{item.icon}</span>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#1A1A18", margin: "0 0 2px 0" }}>{item.title}</p>
+                    <p style={{ fontSize: 12, color: "#9B9A95", margin: 0 }}>{item.sub}</p>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <button onClick={() => setStep("photo-front")} style={{ width: "100%", background: "#1A1A18", color: "#fff", border: "none", height: 46, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-              시작하기
-            </button>
+            {/* 후기 카드 */}
+            <div style={{ background: "#F7F7F5", borderRadius: 16, padding: "16px 18px", marginBottom: 32 }}>
+              <p style={{ fontSize: 14, color: "#3A3A36", margin: "0 0 10px 0", lineHeight: 1.65 }}>
+                "발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요."
+              </p>
+              <p style={{ fontSize: 12, color: "#9B9A95", margin: 0 }}>— 27세, 주 2회 풋살</p>
+            </div>
+
+            {/* 하단 고정 버튼 */}
+            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "16px 24px 28px", background: "linear-gradient(to top, #fff 80%, transparent)", zIndex: 10 }}>
+              <button
+                onClick={() => setStep("photo-front")}
+                style={{ width: "100%", background: GREEN, color: "#fff", border: "none", height: 56, borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: -0.2 }}
+              >
+                내 발 분석하기 →
+              </button>
+              <p style={{ textAlign: "center", fontSize: 12, color: "#9B9A95", margin: "8px 0 0 0" }}>평균 3분 · 무료</p>
+            </div>
           </div>
         )}
 
