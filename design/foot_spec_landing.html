@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발부터 재는 축구화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#17130f;
+    --ink-soft:#241d17;
+    --chalk:#f3ece0;
+    --chalk-dim:#e7ddca;
+    --leather:#a9683c;
+    --leather-dark:#7c4c2a;
+    --turf:#3a5c44;
+    --turf-light:#5a7c62;
+    --stud:#948a7a;
+    --stitch: repeating-linear-gradient(90deg, var(--stud) 0 6px, transparent 6px 12px);
+    --ease-blur: cubic-bezier(0.33,1,0.68,1);
+    --ease-sheet: cubic-bezier(0.42,0.02,0.5,1);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--chalk);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+    overflow-x:hidden;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Big Shoulders Display',sans-serif; text-transform:uppercase;}
+
+  /* ---- tag hole decoration ---- */
+  .tag-hole{
+    width:64px; margin:28px auto 0;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .tag-hole .ring{
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid var(--stud);
+    background:var(--chalk);
+  }
+  .tag-hole .string{
+    width:1px; height:20px; background:var(--stud);
+  }
+
+  /* ---- hero ---- */
+  .hero{
+    max-width:520px; margin:0 auto;
+    padding:0 28px 40px;
+    text-align:center;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-size:11px; letter-spacing:0.18em;
+    color:var(--leather-dark);
+    background:transparent;
+    border:1px solid var(--leather);
+    padding:5px 12px;
+    border-radius:2px;
+    margin:22px 0 22px;
+  }
+  h1.headline{
+    font-size:clamp(34px,7vw,48px);
+    line-height:1.08;
+    font-weight:800;
+    letter-spacing:0.005em;
+  }
+  .char{
+    display:inline-block;
+    opacity:0;
+    filter:blur(10px);
+    transform:translateY(10px);
+    animation:charIn 0.4s var(--ease-blur) forwards;
+  }
+  @keyframes charIn{
+    to{opacity:1; filter:blur(0px); transform:translateY(0);}
+  }
+  .sub{
+    margin-top:18px;
+    font-size:15.5px;
+    line-height:1.6;
+    color:#4a4137;
+    max-width:380px;
+    margin-left:auto; margin-right:auto;
+  }
+  .sub b{color:var(--leather-dark); font-weight:600;}
+
+  /* ---- measurement diagram (signature element) ---- */
+  .diagram-wrap{
+    max-width:520px; margin:8px auto 0;
+    padding:20px 28px 8px;
+  }
+  .diagram-card{
+    border:1px solid var(--stud);
+    border-radius:4px;
+    padding:20px 12px 24px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.35), transparent);
+    position:relative;
+  }
+  .diagram-card::before{
+    content:'FOOT SPEC / SCALE 1:1 아님';
+    position:absolute; top:8px; left:12px;
+    font-size:9px; letter-spacing:0.1em; color:var(--stud);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  svg.foot{ display:block; margin:18px auto 0; width:180px; height:auto; overflow:visible; }
+  .foot-outline{
+    fill:none; stroke:var(--ink); stroke-width:2;
+  }
+  .measure-line{
+    stroke:var(--leather); stroke-width:1.4; stroke-dasharray:4 4;
+    stroke-dashoffset:120; opacity:0;
+    transition:stroke-dashoffset 0.9s var(--ease-blur), opacity 0.3s ease;
+  }
+  .diagram-card.in-view .measure-line{ stroke-dashoffset:0; opacity:1; }
+  .measure-label{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; fill:var(--ink-soft);
+  }
+  .measure-val{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; fill:var(--leather-dark);
+  }
+
+  /* ---- spec list ---- */
+  .specs{
+    max-width:520px; margin:36px auto 0;
+    padding:0 28px;
+    border-top:1px dashed var(--stud);
+  }
+  .spec-row{
+    display:flex; gap:18px; align-items:flex-start;
+    padding:22px 0;
+    border-bottom:1px dashed var(--stud);
+  }
+  .spec-num{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-size:38px; font-weight:700; line-height:1;
+    color:transparent;
+    -webkit-text-stroke:1.4px var(--leather);
+    min-width:44px;
+  }
+  .spec-body h3{
+    font-size:16.5px; font-weight:700; margin-bottom:4px;
+  }
+  .spec-body p{
+    font-size:13.5px; color:#6b6053; line-height:1.5;
+  }
+
+  /* ---- testimonial ---- */
+  .testimonial{
+    max-width:520px; margin:36px auto 0;
+    padding:0 28px;
+  }
+  .stub{
+    border-top:1px dashed var(--stud);
+    padding-top:24px;
+    position:relative;
+  }
+  .stub .quote-mark{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-size:54px; color:var(--leather); opacity:0.55;
+    line-height:0.5; display:block; margin-bottom:6px;
+  }
+  .stub p{
+    font-size:15px; line-height:1.6; font-style:italic; color:var(--ink-soft);
+  }
+  .stub .attrib{
+    display:block; margin-top:12px;
+    font-family:'IBM Plex Mono',monospace; font-size:11px;
+    letter-spacing:0.05em; text-transform:uppercase; color:var(--stud);
+  }
+
+  /* ---- sticky CTA ---- */
+  .cta-bar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--ink);
+    border-top:1px solid var(--leather);
+    padding:14px 20px 18px;
+    text-align:center;
+    z-index:40;
+  }
+  .cta-meta{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    color:var(--stud); letter-spacing:0.08em;
+    margin-bottom:10px;
+  }
+  .cta-btn{
+    width:100%; max-width:480px;
+    background:var(--leather);
+    color:var(--chalk);
+    border:none; border-radius:3px;
+    padding:15px 0;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
+    letter-spacing:0.01em;
+    cursor:pointer;
+  }
+  .cta-btn:active{ background:var(--leather-dark); }
+
+  /* ---- slide-up sheet ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(23,19,15,0.55);
+    opacity:0; pointer-events:none;
+    transition:opacity 0.5s var(--ease-sheet);
+    z-index:50;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0;
+    max-width:560px; margin:0 auto;
+    background:var(--chalk);
+    border-top:1px solid var(--leather);
+    border-radius:10px 10px 0 0;
+    padding:20px 24px 28px;
+    transform:translateY(100%);
+    opacity:0;
+    transition:transform 0.5s var(--ease-sheet), opacity 0.5s var(--ease-sheet);
+    z-index:60;
+  }
+  .sheet.show{ transform:translateY(0); opacity:1; }
+  .sheet-handle{
+    width:36px; height:4px; background:var(--stud); border-radius:2px;
+    margin:0 auto 18px;
+  }
+  .sheet h4{ font-size:17px; font-weight:700; margin-bottom:4px;}
+  .sheet .sheet-sub{ font-size:12.5px; color:#6b6053; margin-bottom:18px;}
+  .upload-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;
+  }
+  .upload-box{
+    aspect-ratio:1; border:1.5px dashed var(--stud); border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--stud);
+    text-align:center; padding:4px;
+  }
+  .sheet-cta{
+    width:100%; background:var(--turf); color:var(--chalk); border:none;
+    border-radius:3px; padding:14px 0; font-weight:700; font-size:14.5px;
+    font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .sheet-close{
+    display:block; margin:14px auto 0; background:none; border:none;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--stud);
+    text-decoration:underline; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+  <div class="tag-hole">
+    <div class="ring"></div>
+    <div class="string"></div>
+  </div>
+
+  <section class="hero">
+    <span class="eyebrow mono">FOOT SPEC ANALYSIS</span>
+    <h1 class="headline" id="headline">축구화 사기 전에<br>발부터 재보세요</h1>
+    <p class="sub">발 사진 <b>3장</b>이면 발볼·발등·아치를 읽고<br>1,120개 제품 중 딱 맞는 걸 골라드려요.</p>
+  </section>
+
+  <div class="diagram-wrap">
+    <div class="diagram-card" id="diagramCard">
+      <svg class="foot" viewBox="0 0 300 420">
+        <path class="foot-outline" d="M150,18 C192,18 212,58 206,112 C201,158 222,196 227,250 C233,312 212,372 170,398 C138,418 88,418 62,392 C36,366 32,320 44,268 C55,220 39,168 50,116 C60,66 102,18 150,18 Z" />
+        <line class="measure-line" x1="20" y1="110" x2="280" y2="110"/>
+        <line class="measure-line" x1="20" y1="230" x2="280" y2="230"/>
+        <line class="measure-line" x1="20" y1="340" x2="280" y2="340"/>
+        <text class="measure-label" x="20" y="102">발볼 WIDTH</text>
+        <text class="measure-val" x="230" y="102">106mm</text>
+        <text class="measure-label" x="20" y="222">발등 HEIGHT</text>
+        <text class="measure-val" x="230" y="222">24mm</text>
+        <text class="measure-label" x="20" y="332">아치 TYPE</text>
+        <text class="measure-val" x="240" y="332">MEDIUM</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="specs">
+    <div class="spec-row">
+      <div class="spec-num mono">01</div>
+      <div class="spec-body">
+        <h3>발볼·발등·아치 자동 분석</h3>
+        <p>발 사진 3장으로 측정 — 줄자 없이도 정확하게</p>
+      </div>
+    </div>
+    <div class="spec-row">
+      <div class="spec-num mono">02</div>
+      <div class="spec-body">
+        <h3>1,120개 실제 제품 매칭</h3>
+        <p>다나와 실시간 최저가 기준으로 비교</p>
+      </div>
+    </div>
+    <div class="spec-row" style="border-bottom:none;">
+      <div class="spec-num mono">03</div>
+      <div class="spec-body">
+        <h3>3가지 추천 + 이유 설명</h3>
+        <p>핏·스타일·절충안, 왜 맞는지까지 알려드려요</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="testimonial">
+    <div class="stub">
+      <span class="quote-mark">"</span>
+      <p>발볼이 넓어서 항상 고민이었는데, 추천받은 거 바로 샀어요. 진짜 딱 맞아요.</p>
+      <span class="attrib">27세 · 주 2회 풋살</span>
+    </div>
+  </div>
+
+  <div class="cta-bar">
+    <div class="cta-meta mono">평균 3분 · 무료</div>
+    <button class="cta-btn" onclick="openSheet()">내 발 분석하기 →</button>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <h4>발 사진 3장을 올려주세요</h4>
+    <p class="sheet-sub">정면 · 측면(안쪽) · 측면(바깥쪽), 양말 벗고 촬영하면 더 정확해요</p>
+    <div class="upload-grid">
+      <div class="upload-box">정면<br>+</div>
+      <div class="upload-box">측면(안)<br>+</div>
+      <div class="upload-box">측면(밖)<br>+</div>
+    </div>
+    <button class="sheet-cta">분석 시작하기</button>
+    <button class="sheet-close" onclick="closeSheet()">닫기</button>
+  </div>
+
+<script>
+  // 1) blur-in stagger headline (Flutter BlurInText 스펙: 400ms ease-out-cubic, 50ms stagger)
+  const headline = document.getElementById('headline');
+  const rawText = headline.innerHTML;
+  const lines = rawText.split('<br>');
+  headline.innerHTML = '';
+  let charIndex = 0;
+  lines.forEach((line, li) => {
+    const lineDiv = document.createElement('div');
+    [...line].forEach(ch => {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = ch === ' ' ? '\u00A0' : ch;
+      span.style.animationDelay = (charIndex * 50) + 'ms';
+      charIndex++;
+      lineDiv.appendChild(span);
+    });
+    headline.appendChild(lineDiv);
+  });
+
+  // 2) measurement diagram draw-in on scroll
+  const diagramCard = document.getElementById('diagramCard');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) diagramCard.classList.add('in-view'); });
+  }, { threshold: 0.4 });
+  io.observe(diagramCard);
+
+  // 3) slide-up sheet (Figma 스펙: cubic-bezier(0.42,0.02,0.5,1), 500ms)
+  const overlay = document.getElementById('overlay');
+  const sheet = document.getElementById('sheet');
+  function openSheet(){
+    overlay.classList.add('show');
+    sheet.classList.add('show');
+  }
+  function closeSheet(){
+    overlay.classList.remove('show');
+    sheet.classList.remove('show');
+  }
+</script>
+</body>
+</html>
